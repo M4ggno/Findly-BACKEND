@@ -1,0 +1,40 @@
+# Arquivos que NÃO devem entrar no contexto de build da imagem Docker.
+
+.git
+.gitignore
+.github
+.venv/
+venv/
+env/
+
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Variáveis de ambiente reais (injetadas via env_file/Compose)
+.env
+.env.*
+!.env.example
+
+# Artefatos locais
+/media/
+/staticfiles/
+/logs/
+*.log
+celerybeat-schedule*
+
+# Editores / SO
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Docs e arquivos de apoio
+docs/
+*.md
+!README.md

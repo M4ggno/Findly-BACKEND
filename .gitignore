@@ -1,0 +1,51 @@
+# --- Python -----------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# --- Ambientes virtuais -----------------------------------------------------
+.venv/
+venv/
+env/
+ENV/
+
+# --- Django -----------------------------------------------------------------
+*.log
+db.sqlite3
+db.sqlite3-journal
+
+# --- Variáveis de ambiente (NUNCA versionar) --------------------------------
+.env
+.env.*
+!.env.example
+
+# --- Mídia, estáticos e logs ------------------------------------------------
+/media/
+/staticfiles/
+/logs/
+
+# --- Ferramentas ------------------------------------------------------------
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+
+# --- Celery -----------------------------------------------------------------
+celerybeat-schedule
+celerybeat.pid
+
+# --- Editores / SO ----------------------------------------------------------
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db

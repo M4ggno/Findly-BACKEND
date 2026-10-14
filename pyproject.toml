@@ -1,0 +1,27 @@
+# Configuração de ferramentas de desenvolvimento (ruff, black, pytest).
+# As dependências ficam em requirements.txt / requirements-dev.txt.
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+src = ["src"]
+extend-exclude = ["migrations", ".venv"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "C4", "UP", "DJ"]
+ignore = ["E501"]  # comprimento de linha é responsabilidade do black
+
+[tool.ruff.lint.isort]
+known-first-party = ["config", "apps", "services"]
+
+[tool.black]
+line-length = 88
+target-version = ["py311"]
+extend-exclude = "migrations"
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings"
+pythonpath = ["src"]
+python_files = ["test_*.py", "*_tests.py", "tests.py"]
+testpaths = ["src"]
+addopts = "-ra --strict-markers"

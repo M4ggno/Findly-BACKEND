@@ -405,6 +405,79 @@ temporário** (`DATABASE_URL=sqlite:///db.sqlite3`): `migrate` →
 
 ---
 
+## 🗓️ 2026-10-14 — Subida dos containers + correções de Docker e Makefile
+
+### 🎯 Objetivo
+Colocar a stack completa no ar (`docker compose up`) para demonstração e
+corrigir os problemas que impediam `web`, `worker` e `beat` de subir.
+
+### 🐞 Problemas encontrados e corrigidos
+
+**1. `web`/`worker`/`beat` caiam com `ModuleNotFoundError: django_extensions`**
+- **Causa:** com `DJANGO_DEBUG=True`, o `settings.py` adiciona `django_extensions`
+  ao `INSTALLED_APPS`, mas a imagem Docker instalava apenas `requirements.txt`
+  (base), não o `requirements-dev.txt`.
+- **Correção (Dockerfile):** build arg `INSTALL_DEV` (default `true`) que instala
+  também o `requirements-dev.txt`. Em produção:
+  `docker build --build-arg INSTALL_DEV=false .`
+
+**2. `beat` caía por subir antes das migrações**
+- **Causa:** `django_celery_beat` precisa do schema criado pelas migrações; o
+  `depends_on` esperava apenas o `db` ficar *healthy*, não as migrações.
+- **Correção (docker-compose.yml):** novo serviço **one-shot `migrate`**
+  (`python manage.py migrate --noinput`). `web`, `worker` e `beat` agora usam
+  `depends_on: migrate: condition: service_completed_successfully` e rodam com
+  `RUN_MIGRATIONS=0` (as migrações são aplicadas uma única vez pelo `migrate`).
+
+**3. Evento do honeypot sem o contador `hits`**
+- **Causa:** em `honeypot.py`, o evento era gravado no Redis **antes** de
+  `_register_hit()` calcular o `hits`.
+- **Correção:** recalcular o `hits` antes de `_store_event()`; o log agora também
+  inclui `hits=N`. Confirmado: `admin_login_attempt ... hits=4`.
+
+**4. `make help` / `make clean` quebrados no Windows**
+- **Causa:** o GNU Make no Windows usa o **cmd.exe**; `help` dependia de
+  `grep/awk/sort` e `clean` de `find/rm -rf` (indisponíveis), além de mojibake
+  nos acentos.
+- **Correções (Makefile):**
+  - `help` reescrito em **make puro** (`define HELP_TEXT` + `$(info)`), sem shell.
+  - `clean` reescrito em **Python** (portável), ignorando `.venv`.
+  - No-op portátil `$(NOOP)` (`@rem` no Windows / `@:` no Unix) para evitar o
+    `Nothing to be done for 'help'`.
+  - Texto do help em ASCII (evita mojibake no cmd).
+
+**5. `MANAGE` expandia sem o interpretador do venv**
+- **Causa:** `MANAGE := $(VENV_PY) manage.py` (expansão imediata) aparecia
+  **antes** da definição de `VENV_PY` no `ifeq ($(OS))` → `$(VENV_PY)` vazio,
+  resultando em só `manage.py`.
+- **Correção:** mover `MANAGE :=` para **depois** do bloco `ifeq`.
+  (Só foi descoberto agora porque o `make` passou a estar instalado.)
+
+### 🐳 Stack no ar
+`db` e `redis` (healthy), `migrate` (Exited 0), `web :8000`, `worker` e `beat` (up).
+
+| Endpoint | Resultado |
+| :--- | :--- |
+| `GET /admin/` (isca) | 200 ✅ |
+| `POST /admin/` (captura) | 200 ✅ |
+| `GET /painel-interno/` (admin real) | 200 ✅ |
+| `GET /api/docs/` (Swagger) | 200 ✅ |
+| `GET /wp-admin/` | 404 ✅ |
+| `make check` | 0 issues ✅ |
+| `make help` / `make clean` / `make gen-secret` | OK ✅ |
+
+### 🔧 Comandos úteis da demo
+- Superusuário: `admin@findly.local` / `admin12345` (criado via
+  `docker compose exec web python manage.py createsuperuser --noinput --email ...`).
+- Captura: `make docker-report` (eventos + blocklist no Redis).
+- Logs: `docker compose logs -f web`.
+
+> ℹ️ O IP capturado é o **gateway do Docker** (`172.x`), pois a requisição chega
+> pela rede interna. Bloqueio de IPs privados fica desligado por padrão
+> (`HONEYPOT_BLOCK_PRIVATE_IPS=False`).
+
+---
+
 <!-- ===================================================================== -->
 <!-- NOVAS ENTRADAS DEVEM SER ADICIONADAS ACIMA DESTA LINHA               -->
 <!-- ===================================================================== -->

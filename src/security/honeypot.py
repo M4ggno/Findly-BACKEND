@@ -192,12 +192,16 @@ def record_attempt(
     if extra:
         event.update(extra)
 
+    hits = _register_hit(ip)
+    event["hits"] = hits
+
     logger.warning(
-        "Honeypot [%s] ip=%s method=%s path=%s user_agent=%r%s",
+        "Honeypot [%s] ip=%s method=%s path=%s hits=%s user_agent=%r%s",
         kind,
         ip,
         event["method"],
         event["path"],
+        hits,
         event["user_agent"],
         f" username={event['attempted_username']!r}"
         if event.get("attempted_username")
@@ -206,8 +210,6 @@ def record_attempt(
 
     _store_event(event)
 
-    hits = _register_hit(ip)
-    event["hits"] = hits
     if hits and hits >= settings.HONEYPOT_BLOCK_THRESHOLD:
         block_ip(ip)
 

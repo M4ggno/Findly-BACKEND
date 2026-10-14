@@ -11,30 +11,76 @@
 COMPOSE   ?= docker compose
 PY        ?= python
 VENV      ?= .venv
-MANAGE    := $(VENV_PY) manage.py
 SERVICE   ?= web
 
 # Detecta o interpretador do venv conforme o sistema operacional.
 ifeq ($(OS),Windows_NT)
     VENV_PY := $(VENV)/Scripts/python.exe
+    NOOP    := @rem
 else
     VENV_PY := $(VENV)/bin/python
+    NOOP    := @:
 endif
+
+# Depende de VENV_PY (definido no bloco acima) — por isso vem depois do ifeq.
+MANAGE    := $(VENV_PY) manage.py
 
 .DEFAULT_GOAL := help
 
 # -----------------------------------------------------------------------------
 # Ajuda
 # -----------------------------------------------------------------------------
+# Texto do `help` definido em make puro (funciona no Windows/cmd e no Unix),
+# sem depender de grep/awk/sort.
+define HELP_TEXT
+Findly Backend - atalhos disponiveis:
+
+  Ambiente local
+    venv                    Cria o ambiente virtual (.venv)
+    install                 Instala as dependencias de desenvolvimento
+    run                     Roda o servidor Django (local)
+    migrate                 Aplica as migracoes
+    makemigrations          Cria novas migracoes
+    superuser               Cria um superusuario
+    shell                   Abre o shell do Django (shell_plus)
+    check                   Executa as verificacoes de sistema
+    test                    Roda os testes (pytest)
+    cov                     Testes com cobertura
+    lint                    Analisa o codigo (ruff)
+    format                  Formata o codigo (black + ruff)
+    report                  Eventos capturados pelo honeypot (local)
+    gen-secret              Gera DJANGO_SECRET_KEY e DJANGO_ADMIN_URL aleatorios
+    worker                  Inicia worker Celery (local)
+    beat                    Inicia beat Celery (local)
+
+  Docker
+    up                      Sobe os containers (build incluido)
+    down                    Derruba os containers
+    build                   Reconstroi as imagens
+    restart                 Reinicia os containers
+    ps                      Status dos containers
+    logs                    Logs de todos os servicos (-f)
+    logs-web                Logs do servico web
+    sh                      Shell no container da aplicacao
+    dbshell                 psql no container do banco
+    docker-migrate          Aplica migracoes no container
+    docker-makemigrations   Cria migracoes no container
+    docker-superuser        Cria superusuario no container
+    docker-shell            Shell do Django no container
+    docker-test             Testes no container
+    docker-report           Eventos do honeypot no container
+    docker-worker-logs      Logs do worker Celery
+    docker-beat-logs        Logs do beat Celery
+    reset                   ATENCAO: remove containers E volumes (apaga o banco)
+
+  Limpeza
+    clean                   Remove caches Python/pytest/ruff
+endef
+
 .PHONY: help
 help: ## Lista os alvos disponíveis
-	@echo ""
-	@echo "Findly Backend - atalhos disponíveis:"
-	@echo ""
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
-		| sort \
-		| awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}'
-	@echo ""
+	$(info $(HELP_TEXT))
+	$(NOOP)
 
 # -----------------------------------------------------------------------------
 # Ambiente local (sem Docker)
@@ -185,7 +231,4 @@ reset: ## ATENÇÃO: remove containers E volumes (apaga o banco de dados)
 # -----------------------------------------------------------------------------
 .PHONY: clean
 clean: ## Remove caches Python/pytest/ruff
-	@echo "Limpando caches..."
-	@find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
-	@rm -rf .pytest_cache .ruff_cache .coverage htmlcov
-	@echo "Pronto."
+	@$(PY) -c "import pathlib,shutil; [shutil.rmtree(d,ignore_errors=True) for d in pathlib.Path('.').rglob('__pycache__') if '.venv' not in d.parts]; shutil.rmtree('.pytest_cache',ignore_errors=True); shutil.rmtree('.ruff_cache',ignore_errors=True); shutil.rmtree('htmlcov',ignore_errors=True); pathlib.Path('.coverage').unlink(missing_ok=True); print('Caches removidos.')"

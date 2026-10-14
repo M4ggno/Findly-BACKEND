@@ -27,8 +27,14 @@ RUN apt-get update \
 
 # --- Dependências Python ----------------------------------------------------
 # Copiadas antes do código para aproveitar o cache de camadas do Docker.
-COPY requirements.txt ./
-RUN pip install --upgrade pip && pip install -r requirements.txt
+# INSTALL_DEV=true (padrão) instala também as ferramentas de desenvolvimento
+# (django-extensions, pytest, ruff...), necessárias com DJANGO_DEBUG=True.
+# Em produção: docker build --build-arg INSTALL_DEV=false ...
+ARG INSTALL_DEV=true
+COPY requirements.txt requirements-dev.txt ./
+RUN pip install --upgrade pip \
+    && pip install -r requirements.txt \
+    && if [ "$INSTALL_DEV" = "true" ]; then pip install -r requirements-dev.txt; fi
 
 # --- Código da aplicação ----------------------------------------------------
 COPY . .

@@ -57,6 +57,32 @@ services:
       - findly_network
 
   # ---------------------------------------------------------------------------
+  # Migrações (serviço one-shot): aplica as migrações uma única vez e encerra.
+  # web/worker/beat só iniciam após este serviço concluir com sucesso.
+  # ---------------------------------------------------------------------------
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: findly_migrate
+    command: python manage.py migrate --noinput
+    env_file:
+      - .env
+    environment:
+      <<: *app-environment
+      RUN_MIGRATIONS: "0"
+    volumes:
+      - .:/app
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - findly_network
+    restart: "no"
+
+  # ---------------------------------------------------------------------------
   # Aplicação Django (servidor de desenvolvimento)
   # ---------------------------------------------------------------------------
   web:
@@ -69,6 +95,7 @@ services:
       - .env
     environment:
       <<: *app-environment
+      RUN_MIGRATIONS: "0"   # as migrações são aplicadas pelo serviço `migrate`
     volumes:
       - .:/app
       - media_volume:/app/media
@@ -77,10 +104,8 @@ services:
     ports:
       - "${WEB_PORT:-8000}:8000"
     depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     networks:
       - findly_network
 
@@ -97,16 +122,14 @@ services:
       - .env
     environment:
       <<: *app-environment
-      RUN_MIGRATIONS: "0"   # as migrações são aplicadas pelo serviço web
+      RUN_MIGRATIONS: "0"   # as migrações são aplicadas pelo serviço `migrate`
     volumes:
       - .:/app
       - media_volume:/app/media
       - logs_volume:/app/logs
     depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     networks:
       - findly_network
 
@@ -128,10 +151,8 @@ services:
       - .:/app
       - logs_volume:/app/logs
     depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     networks:
       - findly_network
 

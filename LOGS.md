@@ -362,6 +362,49 @@ App criado em `src/apps/users/` (nome do `AppConfig` = `apps.users`):
 2. Serializers + ViewSet de `users` (perfil, `/me`, listagem admin).
 3. Permissões por papel (common/operator/admin) e depois `items`.
 
+## 🗓️ 2026-10-14 — Teste end-to-end do `/admin` + honeypot (bug de CSRF)
+
+### 🎯 Objetivo
+Validar em **HTTP real** (não só test client) o admin oculto e o honeypot.
+
+### 🧪 Procedimento
+Como o Postgres/Docker não estava disponível, o teste rodou com **SQLite
+temporário** (`DATABASE_URL=sqlite:///db.sqlite3`): `migrate` →
+`createsuperuser --email` → `runserver`. O `db.sqlite3` foi removido ao final.
+
+### 📊 Resultados
+| Requisição | Resposta | OK? |
+| :--- | :--- | :--- |
+| `GET /admin/` | 200 (formulário-isca) | ✅ |
+| `POST /admin/` (com credenciais) | 200 + captura no log | ✅ |
+| `POST /admin/login/` | 200 + captura no log | ✅ |
+| `GET /painel-interno/` | 302 → login do admin | ✅ |
+| Login real (`POST /painel-interno/login/`) | 302 → `GET /painel-interno/` 200 (admin) | ✅ |
+| `GET /wp-admin/`, `GET /.env` | 404 | ✅ |
+
+### 🐞 Bug encontrado e corrigido
+- **Sintoma:** `POST /admin/` retornava **403** em produção.
+- **Causa:** o `CsrfViewMiddleware` bloqueava o POST (o formulário-isca não tem
+  token CSRF) — ou seja, **as credenciais nunca chegavam à view** e nada era
+  capturado. Log: `Forbidden (CSRF cookie not set.): /admin/`.
+- **Correção:** view do honeypot marcada com `@csrf_exempt` (a isca precisa
+  aceitar o POST para capturar). Além disso, o **username tentado** passou a
+  constar na linha de log (visível mesmo sem Redis).
+- **Teste de regressão:** `test_post_sem_csrf_token_e_aceito` usando
+  `Client(enforce_csrf_checks=True)` — o test client padrão **não** valida CSRF,
+  por isso o bug não havia sido detectado antes.
+
+### ✅ Validações
+- `pytest src/security/tests/test_honeypot.py` → **7 passed**.
+- Captura confirmada no `logs/security.log`:
+  `Honeypot [admin_login_attempt] ... username='admin'`.
+
+> ℹ️ **Observação:** o `runserver` exige banco no boot (`check_migrations()`),
+> então sem Postgres ele não sobe. Em produção/dev use o Docker
+> (`make up`) ou tenha o Postgres no ar.
+
+---
+
 <!-- ===================================================================== -->
 <!-- NOVAS ENTRADAS DEVEM SER ADICIONADAS ACIMA DESTA LINHA               -->
 <!-- ===================================================================== -->

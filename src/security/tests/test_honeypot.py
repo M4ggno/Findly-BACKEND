@@ -32,6 +32,15 @@ def test_post_de_credenciais_e_capturado(client: Client) -> None:
     assert response.status_code == 200
 
 
+def test_post_sem_csrf_token_e_aceito() -> None:
+    """A isca deve aceitar POST sem CSRF válido (senão não capturaria nada)."""
+    enforcing_client = Client(HTTP_HOST="localhost", enforce_csrf_checks=True)
+    response = enforcing_client.post(
+        "/admin/", {"username": "root", "password": "toor"}
+    )
+    assert response.status_code == 200
+
+
 def test_admin_real_fica_em_caminho_secreto(client: Client) -> None:
     admin_url = reverse("admin:index")
     assert admin_url.startswith("/painel-interno/")

@@ -27,6 +27,7 @@ from ipaddress import ip_address
 
 from django.conf import settings
 from django.http import HttpRequest, HttpResponse, HttpResponseNotFound
+from django.views.decorators.csrf import csrf_exempt
 
 logger = logging.getLogger("findly.security.honeypot")
 
@@ -192,12 +193,15 @@ def record_attempt(
         event.update(extra)
 
     logger.warning(
-        "Honeypot [%s] ip=%s method=%s path=%s user_agent=%r",
+        "Honeypot [%s] ip=%s method=%s path=%s user_agent=%r%s",
         kind,
         ip,
         event["method"],
         event["path"],
         event["user_agent"],
+        f" username={event['attempted_username']!r}"
+        if event.get("attempted_username")
+        else "",
     )
 
     _store_event(event)
@@ -285,8 +289,14 @@ def _decoy_login_page(show_error: bool = False) -> str:
 # ---------------------------------------------------------------------------
 # Views
 # ---------------------------------------------------------------------------
+@csrf_exempt
 def admin_honeypot_view(request: HttpRequest) -> HttpResponse:
-    """Armadilha do clássico ``/admin/`` (e subrotas)."""
+    """Armadilha do clássico ``/admin/`` (e subrotas).
+
+    É ``csrf_exempt`` de propósito: a isca precisa **aceitar** o POST para
+    capturar as credenciais digitadas (um atacante jamais enviaria um token
+    CSRF válido; sem isso, o middleware devolveria 403 e nada seria capturado).
+    """
     if settings.HONEYPOT_DELAY_SECONDS > 0:
         # "Tarpit": atrasa deliberadamente para desperdiçar o tempo do atacante.
         time.sleep(settings.HONEYPOT_DELAY_SECONDS)

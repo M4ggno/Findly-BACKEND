@@ -88,7 +88,7 @@ INFRA_APPS = [
 # Apps de domínio do Findly. Os demais serão habilitados nas próximas etapas.
 LOCAL_APPS = [
     "apps.users",
-    # "apps.authentication",
+    "apps.authentication",
     # "apps.items",
     # "apps.operations",
     # "apps.audit",
@@ -183,6 +183,16 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
+# Exige confirmação de e-mail antes do primeiro login (a conta nasce inativa e
+# é ativada em `/api/auth/verify-email/`).
+AUTH_REQUIRE_EMAIL_VERIFICATION = env.bool(
+    "AUTH_REQUIRE_EMAIL_VERIFICATION", default=True
+)
+# Validade dos tokens de uso único, em segundos.
+EMAIL_VERIFICATION_TIMEOUT = env.int("EMAIL_VERIFICATION_TIMEOUT", default=86400)
+# Redefinição de senha com expiração curta (requisito do README).
+PASSWORD_RESET_TIMEOUT = env.int("PASSWORD_RESET_TIMEOUT", default=3600)
+
 # ===========================================================================
 # 9. Django REST Framework / JWT / OpenAPI
 # ===========================================================================
@@ -208,6 +218,10 @@ REST_FRAMEWORK = {
     "DEFAULT_THROTTLE_RATES": {
         "anon": env("THROTTLE_ANON", default="60/min"),
         "user": env("THROTTLE_USER", default="1000/day"),
+        # Escopos das rotas de autenticação (proteção contra força bruta).
+        "auth": env("THROTTLE_AUTH", default="20/min"),
+        "register": env("THROTTLE_REGISTER", default="5/hour"),
+        "password_reset": env("THROTTLE_PASSWORD_RESET", default="5/hour"),
     },
 }
 
@@ -330,6 +344,16 @@ EMAIL_HOST_USER = env("EMAIL_HOST_USER", default="")
 EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
 EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=True)
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="Findly <no-reply@findly.local>")
+
+# URLs usadas nos e-mails transacionais. O front-end recebe `uid` e `token` na
+# query string; os mesmos valores também vão no corpo do e-mail.
+FRONTEND_URL = env("FRONTEND_URL", default="http://localhost:3000").rstrip("/")
+EMAIL_VERIFICATION_URL = env(
+    "EMAIL_VERIFICATION_URL", default=f"{FRONTEND_URL}/verificar-email"
+)
+PASSWORD_RESET_URL = env(
+    "PASSWORD_RESET_URL", default=f"{FRONTEND_URL}/redefinir-senha"
+)
 
 # ===========================================================================
 # 13. Arquivos estáticos e mídia

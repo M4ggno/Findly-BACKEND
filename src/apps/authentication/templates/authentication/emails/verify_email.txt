@@ -1,0 +1,16 @@
+Olá, {{ user.full_name|default:user.email }}!
+
+Recebemos um pedido para confirmar o e-mail da sua conta no Findly.
+
+Para ativar sua conta, acesse:
+{{ url }}
+
+O link expira em {{ expires_minutes }} minutos.
+
+Se o link não funcionar, use os dados abaixo na API (POST /api/auth/verify-email/):
+  uid: {{ uid }}
+  token: {{ token }}
+
+Se você não criou esta conta, ignore este e-mail.
+
+— Equipe Findly

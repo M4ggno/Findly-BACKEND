@@ -37,8 +37,7 @@ urlpatterns = [
         name="redoc",
     ),
     # --- Autenticação (JWT) -------------------------------------------------
-    # TODO(apps): descomentar quando o app `authentication` estiver pronto.
-    # path("api/auth/", include("apps.authentication.urls")),
+    path("api/auth/", include("apps.authentication.urls")),
     #
     # --- Apps de domínio ----------------------------------------------------
     # TODO(apps): incluir as rotas de users, items, operations e audit.

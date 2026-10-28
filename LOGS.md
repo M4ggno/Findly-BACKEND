@@ -478,6 +478,75 @@ corrigir os problemas que impediam `web`, `worker` e `beat` de subir.
 
 ---
 
+## 🗓️ 2026-10-28 — App `authentication` (JWT: cadastro, login, logout, verificação e reset)
+
+### 🎯 Objetivo
+Implementar o módulo **Autenticação** do README: cadastro com verificação de
+conta, login/logout com JWT (par `access`/`refresh`) e recuperação de senha via
+token temporário de curta duração.
+
+### 📁 Estrutura criada
+| Arquivo | Responsabilidade |
+| :--- | :--- |
+| `apps/authentication/tokens.py` | Tokens de uso único (e-mail e reset) com `key_salt` distintos e expiração configurável |
+| `apps/authentication/emails.py` | Renderização e envio dos e-mails (link do front-end + `uid`/`token`) |
+| `apps/authentication/serializers.py` | Cadastro, login, logout, verificação e reset |
+| `apps/authentication/services.py` | `blacklist_user_tokens()` (revoga sessões após reset) |
+| `apps/authentication/views.py` | Views com throttling escopado e documentação OpenAPI |
+| `apps/authentication/templates/...` | E-mails em texto (`verify_email.txt`, `password_reset.txt`) |
+| `apps/users/serializers.py` | `UserSerializer` (leitura), reutilizado na resposta do login |
+| `apps/authentication/tests/` | 38 testes (cadastro, login, refresh/logout, verificação, reset, tokens) |
+
+### 🔌 Rotas (`/api/auth/`)
+| Método | Rota | Descrição |
+| :--- | :--- | :--- |
+| POST | `register/` | Cria a conta (nasce inativa) e envia confirmação |
+| POST | `login/` | E-mail + senha → `access`, `refresh`, `user` |
+| POST | `refresh/` | Rotaciona o par e invalida o refresh anterior |
+| POST | `logout/` | Blacklist do refresh (exige autenticação) |
+| POST | `verify-email/` | Ativa a conta com `uid` + `token` |
+| POST | `resend-verification/` | Reenvia confirmação (resposta genérica) |
+| POST | `password-reset/` | Solicita link temporário (resposta genérica) |
+| POST | `password-reset/confirm/` | Define a nova senha e revoga sessões |
+
+### 🔐 Decisões de segurança
+- **Contas nascem inativas** (`AUTH_REQUIRE_EMAIL_VERIFICATION=True`): o login só
+  funciona após `verify-email/`. Em dev o e-mail sai no console do container.
+- **Tokens independentes por fluxo**: `key_salt` diferente em
+  `EmailVerificationTokenGenerator` e `FindlyPasswordResetTokenGenerator` — um
+  token de verificação **não** serve para resetar senha (e vice-versa).
+- **Uso único**: o token de verificação inclui `is_active` no hash (invalida após
+  a ativação); o de reset inclui `password`/`last_login` (invalida após o uso).
+- **Expiração curta**: `PASSWORD_RESET_TIMEOUT=3600` e
+  `EMAIL_VERIFICATION_TIMEOUT=86400` (segundos), configuráveis no `.env`.
+- **Anti-enumeração**: `password-reset/` e `resend-verification/` sempre
+  respondem `202` com mensagem genérica.
+- **Throttling escopado**: `auth` (20/min), `register` (5/h) e
+  `password_reset` (5/h) — configurável por env.
+- **Revogação de sessões**: ao redefinir a senha, todos os `OutstandingToken` do
+  usuário vão para a blacklist; refreshes antigos passam a falhar.
+- **Logout restrito ao dono**: um usuário autenticado não consegue revogar o
+  refresh de outra conta (comparação de `user_id`).
+
+### ✅ Validações
+| Verificação | Resultado |
+| :--- | :--- |
+| `manage.py check` | 0 issues ✅ |
+| `makemigrations --check` | No changes detected ✅ |
+| `pytest src/apps/authentication` | **38 passed** ✅ |
+| `pytest src/apps/users` | 5 passed ✅ |
+| `ruff check` / `black --check` | limpos ✅ |
+| `manage.py spectacular` | 8 rotas, sem warnings ✅ |
+
+> ℹ️ Os testes usam **SQLite temporário** e cache em memória (`LocMemCache`),
+> sem depender de Postgres/Redis. O throttle é neutralizado nos testes.
+
+### ⏭️ Próximos passos
+1. Serializers + ViewSet de `users` (perfil, `/me`, listagem/gestão por papel).
+2. Permissões por papel (`common`/`operator`/`admin`).
+3. Depois: `items` (achados/perdidos + máquina de estados), `operations`, `audit`.
+
 <!-- ===================================================================== -->
 <!-- NOVAS ENTRADAS DEVEM SER ADICIONADAS ACIMA DESTA LINHA               -->
 <!-- ===================================================================== -->
+

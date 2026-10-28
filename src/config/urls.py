@@ -4,6 +4,7 @@ As rotas de cada app de domínio (``apps.*``) serão incluídas aqui conforme fo
 implementadas (ver TODO abaixo). Por enquanto expõe o Django Admin (em caminho
 secreto), o honeypot em ``/admin/`` e a documentação OpenAPI/Swagger da API.
 """
+
 from __future__ import annotations
 
 from django.conf import settings
@@ -38,9 +39,11 @@ urlpatterns = [
     ),
     # --- Autenticação (JWT) -------------------------------------------------
     path("api/auth/", include("apps.authentication.urls")),
+    # --- Usuários (perfil + gestão) -----------------------------------------
+    path("api/", include("apps.users.urls")),
     #
     # --- Apps de domínio ----------------------------------------------------
-    # TODO(apps): incluir as rotas de users, items, operations e audit.
+    # TODO(apps): incluir as rotas de items, operations e audit.
 ]
 
 # Servir arquivos de mídia em desenvolvimento.

@@ -3,6 +3,7 @@
 Substituem os formulários padrão do ``django.contrib.auth`` porque o Findly usa
 um modelo de usuário customizado (login por **e-mail**, sem ``username``).
 """
+
 from __future__ import annotations
 
 from django import forms
@@ -47,4 +48,15 @@ class UserChangeForm(forms.ModelForm):
 
     class Meta:
         model = User
-        fields = "__all__"
+        fields = (
+            "email",
+            "password",
+            "full_name",
+            "phone",
+            "role",
+            "is_active",
+            "is_staff",
+            "is_superuser",
+            "groups",
+            "user_permissions",
+        )

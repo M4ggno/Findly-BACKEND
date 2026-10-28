@@ -546,6 +546,62 @@ token temporário de curta duração.
 2. Permissões por papel (`common`/`operator`/`admin`).
 3. Depois: `items` (achados/perdidos + máquina de estados), `operations`, `audit`.
 
+## 🗓️ 2026-10-28 — App `users` (perfil, `/me` e gestão de contas por papel)
+
+### 🎯 Objetivo
+Expor o módulo **Usuários** do README: perfil/dados cadastrais, informações de
+contato e controle de permissões (Usuário Comum, Operador de Ponto de Coleta e
+Administrador).
+
+### 📁 Estrutura criada/alterada
+| Arquivo | Responsabilidade |
+| :--- | :--- |
+| `apps/users/permissions.py` | `IsAdminRole` (papel `admin`/superusuário) e `IsOperatorOrAdmin` (reutilizável em itens/operações) |
+| `apps/users/serializers.py` | `UserSerializer` (leitura), `MeSerializer` (perfil) e `AdminUserUpdateSerializer` (gestão) |
+| `apps/users/views.py` | `MeView` (perfil) e `UserViewSet` (listagem/detalhe/edição) |
+| `apps/users/urls.py` | Rotas em `/api/users/` |
+| `apps/users/forms.py` | `UserChangeForm` com `fields` explícitos (corrige `DJ007` do ruff) |
+| `apps/users/tests/test_api.py` + `conftest.py` | 19 testes de API (perfil, permissões, gestão e revogação) |
+
+### 🔌 Rotas (`/api/users/`)
+| Método | Rota | Quem acessa | Descrição |
+| :--- | :--- | :--- | :--- |
+| GET | `me/` | autenticado | Perfil do próprio usuário |
+| PUT/PATCH | `me/` | autenticado | Atualiza `full_name` e `phone` |
+| GET | `/` | admin | Lista paginada (filtro `role`/`is_active`, busca e ordenação) |
+| GET | `{id}/` | admin | Detalhe de uma conta |
+| PUT/PATCH | `{id}/` | admin | Corrige dados, muda papel e (des)ativa a conta |
+
+### 🔐 Decisões
+- **E-mail e papel são somente leitura no perfil**: o e-mail é o identificador de
+  login (trocá-lo exigiria novo ciclo de verificação) e o papel é controlado pela
+  administração. No `me/`, só `full_name` e `phone` são editáveis.
+- **Sem criação/exclusão pela API de gestão**: contas nascem pelo cadastro
+  público e são **desativadas** (`is_active=False`), preservando histórico e
+  auditoria. Métodos `POST`/`DELETE` respondem `405`.
+- **Admin não edita o próprio registro** (`400`): evita rebaixar ou desativar a
+  si mesmo por engano; os próprios dados ficam em `/api/users/me/`.
+- **Superusuário não perde o papel `admin`**, mesmo quando editado por outro
+  administrador.
+- **Desativação revoga sessões**: os *refresh tokens* vão para a blacklist e o
+  *access token* deixa de autenticar (o `JWTAuthentication` exige `is_active`).
+- **`IsOperatorOrAdmin`** já fica pronto para os próximos apps (itens/operações).
+
+### ✅ Validações
+| Verificação | Resultado |
+| :--- | :--- |
+| `manage.py check` | 0 issues ✅ |
+| `makemigrations --check` | No changes detected ✅ |
+| `pytest src/apps/users` | **24 passed** (5 modelo + 19 API) ✅ |
+| `pytest src/apps/authentication` | 38 passed ✅ |
+| `ruff check` / `black --check` | limpos ✅ |
+| `manage.py spectacular` | 3 rotas de usuários, sem warnings ✅ |
+
+### ⏭️ Próximos passos
+1. App `items` (achados/perdidos + máquina de estados e histórico vinculado).
+2. App `operations` (custódia, pontos de coleta, claims/retiradas + QR Code).
+3. App `audit` (trilha de auditoria) e serviços transversais (fotos/notificações).
+
 <!-- ===================================================================== -->
 <!-- NOVAS ENTRADAS DEVEM SER ADICIONADAS ACIMA DESTA LINHA               -->
 <!-- ===================================================================== -->

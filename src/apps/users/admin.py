@@ -2,6 +2,7 @@
 
 O admin real fica em um caminho secreto (ver ``DJANGO_ADMIN_URL`` e o honeypot).
 """
+
 from __future__ import annotations
 
 from django.contrib import admin

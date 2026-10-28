@@ -1,0 +1,26 @@
+$kind: http-request
+name: 7. Solicitar reset de senha
+order: 7000
+method: POST
+url: '{{base_url}}/api/auth/password-reset/'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "email": "{{login_email}}"
+    }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('202 Accepted', () => pm.response.to.have.status(202));
+      console.log('Se a conta existir, o link está no console: docker compose logs -f web');
+description: |-
+  Envia o link temporário de redefinição (expira em **1 hora**).
+
+  A resposta é sempre `202` com mensagem genérica (anti-enumeração). Em dev, o
+  e-mail com `uid` e `token` aparece em `docker compose logs -f web`; copie os
+  valores para as variáveis `reset_uid` e `reset_token`.

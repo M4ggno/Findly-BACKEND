@@ -1,0 +1,6 @@
+$kind: collection
+name: 2. Usuários
+description: |-
+  Perfil do usuário autenticado (`/me`) e gestão de contas restrita a
+  administradores. Para testar, faça login com uma conta com papel `admin`.
+order: 2000

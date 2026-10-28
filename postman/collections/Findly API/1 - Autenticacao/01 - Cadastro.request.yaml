@@ -1,0 +1,42 @@
+$kind: http-request
+name: 1. Cadastro
+order: 1000
+method: POST
+url: '{{base_url}}/api/auth/register/'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "email": "{{demo_email}}",
+      "full_name": "{{demo_name}}",
+      "phone": "11999999999",
+      "password": "{{demo_password}}",
+      "password_confirm": "{{demo_password}}"
+    }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('201 Created', () => pm.response.to.have.status(201));
+
+      const data = pm.response.json();
+
+      if (pm.response.code === 201) {
+        pm.test('Conta criada inativa (aguardando verificação)', () => {
+          pm.expect(data.user.is_active).to.eql(false);
+        });
+        pm.environment.set('login_email', data.user.email);
+        console.log('Verificação enviada para ' + data.user.email);
+        console.log('Copie uid e token do e-mail: docker compose logs -f web');
+      } else {
+        console.log('Se o e-mail já existir, pule para o Login ou use outro demo_email.');
+      }
+description: |-
+  Cria a conta com `is_active=false` e envia o e-mail de confirmação (em dev, o
+  conteúdo aparece no console do Django).
+
+  - `201`: conta criada. Copie `uid` e `token` do e-mail para a requisição **Verificar e-mail**.
+  - `400`: e-mail já cadastrado, senha fraca ou senhas diferentes.

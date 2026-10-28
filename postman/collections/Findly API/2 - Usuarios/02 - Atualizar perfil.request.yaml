@@ -1,0 +1,42 @@
+$kind: http-request
+name: 2. Atualizar perfil
+order: 2000
+method: PATCH
+url: '{{base_url}}/api/users/me/'
+headers:
+  - key: Content-Type
+    value: application/json
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{access_token}}'
+body:
+  type: json
+  content: |-
+    {
+      "full_name": "Maria Apresentação",
+      "phone": "11988887777"
+    }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('200 OK', () => pm.response.to.have.status(200));
+
+      const user = pm.response.json();
+
+      if (pm.response.code === 200) {
+        pm.test('Dados atualizados', () => {
+          pm.expect(user.full_name).to.eql('Maria Apresentação');
+          pm.expect(user.phone).to.eql('11988887777');
+        });
+      }
+description: |-
+  Atualiza os dados cadastrais do próprio usuário.
+
+  **Editáveis:** `full_name`, `phone`.
+  **Somente leitura:** `email` (é o login; trocar exigiria nova verificação),
+  `role` e `is_active` (controlados pela administração).
+
+  Campos somente leitura enviados no body são ignorados.

@@ -1,0 +1,49 @@
+$kind: http-request
+name: 3. Login
+order: 3000
+method: POST
+url: '{{base_url}}/api/auth/login/'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "email": "{{login_email}}",
+      "password": "{{login_password}}"
+    }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('200 OK', () => pm.response.to.have.status(200));
+
+      const data = pm.response.json();
+
+      if (pm.response.code === 200) {
+        pm.test('Resposta contém access, refresh e user', () => {
+          pm.expect(data).to.have.property('access');
+          pm.expect(data).to.have.property('refresh');
+          pm.expect(data).to.have.property('user');
+        });
+
+        pm.environment.set('access_token', data.access);
+        pm.environment.set('refresh_token', data.refresh);
+        pm.environment.set('user_id', data.user.id);
+        pm.environment.set('login_email', data.user.email);
+
+        console.log('Tokens salvos no environment. Papel: ' + data.user.role);
+      }
+description: |-
+  Autentica por e-mail e senha e devolve `access`, `refresh` e `user`.
+
+  O script salva `access_token`, `refresh_token` e `user_id` no environment —
+  as próximas requisições já usam o Bearer token automaticamente.
+
+  **Para testar as rotas de administração:** troque `login_email` /
+  `login_password` para uma conta com papel `admin` e execute o login de novo.
+  (Credenciais de admin não ficam versionadas; use a conta criada no seu ambiente.)
+
+  - `401`: senha incorreta ou conta ainda não verificada.
+  - `429`: throttling (20/min).

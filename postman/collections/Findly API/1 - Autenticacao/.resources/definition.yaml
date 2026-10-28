@@ -1,0 +1,6 @@
+$kind: collection
+name: 1. Autenticação
+description: |-
+  Fluxo completo de autenticação: cadastro com verificação de e-mail, login JWT,
+  rotação/revogação de token e recuperação de senha.
+order: 1000

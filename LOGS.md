@@ -602,6 +602,45 @@ Administrador).
 2. App `operations` (custódia, pontos de coleta, claims/retiradas + QR Code).
 3. App `audit` (trilha de auditoria) e serviços transversais (fotos/notificações).
 
+## 🗓️ 2026-10-28 — Collection Postman (autenticação + usuários) e environment
+
+### 🎯 Objetivo
+Criar artefatos prontos para apresentar a autenticação e documentar, para o time
+de front-end, todos os endpoints disponíveis (auth + usuários), com tokens
+gerenciados automaticamente pelas requisições.
+
+### 📁 Estrutura criada
+| Arquivo | Conteúdo |
+| :--- | :--- |
+| `postman/collections/Findly API/` | Collection v3 com 13 requisições em 2 pastas |
+| `postman/environments/Findly Local.environment.yaml` | `base_url`, credenciais demo e variáveis de token/verificação/reset |
+| `README.md` | Seção 7 com instruções de importação e uso |
+
+### 🔌 Requisições
+- **1. Autenticação:** Cadastro, Verificar e-mail, Login, Renovar token, Logout,
+  Reenviar verificação, Solicitar reset e Confirmar reset.
+- **2. Usuários:** Meu perfil, Atualizar perfil, Listar (admin), Detalhar (admin)
+  e Editar (admin).
+
+### ⚙️ Automação dos scripts
+- Login salva `access_token`, `refresh_token` e `user_id` no environment.
+- Refresh rotaciona e atualiza o par automaticamente.
+- Logout e reset limpam os tokens; reset também troca `login_password`.
+- Cada requisição tem `pm.test` (status e formato) para servir de exemplo ao front.
+
+### ✅ Validações
+| Verificação | Resultado |
+| :--- | :--- |
+| `postman collection lint` | 0 errors / 0 warnings ✅ |
+| `postman environment lint` | 0 errors / 0 warnings ✅ |
+| `postman workspace lint` | 16 recursos, sem issues ✅ |
+| Login → perfil → refresh → listagem admin → logout | 6 requests, 12 assertions, 0 falhas ✅ |
+| Cadastro → verificação → login | `201`/`200`/`200` ✅ |
+| Solicitar reset → confirmar → login com nova senha | `202`/`200`/`200` ✅ |
+
+> A execução foi feita contra um Django local (SQLite + cache em memória), com
+> e-mail no console — o mesmo comportamento do `docker compose` em dev.
+
 <!-- ===================================================================== -->
 <!-- NOVAS ENTRADAS DEVEM SER ADICIONADAS ACIMA DESTA LINHA               -->
 <!-- ===================================================================== -->

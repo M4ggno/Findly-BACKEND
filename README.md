@@ -197,3 +197,37 @@ O ambiente é inteiramente orquestrado via **Docker** e **Docker Compose**, gara
 1. **Fat Services, Skinny Views:** As `Views` devem apenas receber a requisição, validar o `Serializer` e chamar a camada de **Regras de Negócio / Serviços**.
 2. **Transações Atômicas:** Toda operação que envolva troca de **Custódia** ou **Entrega/Retirada** deve ser encapsulada em `@transaction.atomic`.
 3. **Auditoria Inegociável:** Nenhuma alteração de `Status` ou `Custódia` pode ocorrer sem registrar um evento correspondente no módulo de **Histórico / Auditoria**.
+
+---
+
+## 🧪 7. Coleção Postman (Autenticação e Front-end)
+
+Os artefatos ficam versionados em `postman/` (formato v3, um arquivo por
+requisição):
+
+| Caminho | Conteúdo |
+| :--- | :--- |
+| `postman/collections/Findly API/` | 13 requisições: autenticação (cadastro, verificação, login, refresh, logout, reset) e usuários (`/me`, gestão admin) |
+| `postman/environments/Findly Local.environment.yaml` | `base_url`, credenciais de demonstração e variáveis de token |
+
+**Como usar**
+
+1. Suba a API: `docker compose up -d --build`.
+2. No Postman, importe a pasta `postman/collections/Findly API` e o environment
+   `postman/environments/Findly Local.environment.yaml`.
+3. Selecione o environment **Findly Local**.
+4. Siga o roteiro da descrição da collection: **Cadastro → Verificar e-mail →
+   Login → Meu perfil → Renovar token → Logout**.
+
+Os scripts das requisições salvam `access_token`, `refresh_token` e `user_id` no
+environment automaticamente. Em desenvolvimento, os e-mails de verificação e de
+reset aparecem no console (`docker compose logs -f web`).
+
+Também é possível executar pela CLI sem abrir o Postman:
+
+```bash
+postman collection run "postman/collections/Findly API" \
+  -e "postman/environments/Findly Local.environment.yaml"
+```
+
+> As credenciais do environment são **exclusivas para desenvolvimento local**.

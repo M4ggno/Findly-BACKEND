@@ -1,0 +1,38 @@
+$kind: http-request
+name: 5. Logout
+order: 5000
+method: POST
+url: '{{base_url}}/api/auth/logout/'
+headers:
+  - key: Content-Type
+    value: application/json
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{access_token}}'
+body:
+  type: json
+  content: |-
+    {
+      "refresh": "{{refresh_token}}"
+    }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('200 OK', () => pm.response.to.have.status(200));
+
+      if (pm.response.code === 200) {
+        pm.environment.unset('access_token');
+        pm.environment.unset('refresh_token');
+        console.log('Sessão encerrada e tokens removidos do environment.');
+      }
+description: |-
+  Encerra a sessão colocando o `refresh` na **blacklist**. Exige `access` válido.
+
+  O script limpa `access_token` e `refresh_token` do environment. Depois disso,
+  as requisições protegidas retornam `401` e o refresh não pode mais ser usado.
+
+  - `400`: refresh inválido, expirado ou de outra conta.
+  - `401`: access ausente/expirado.

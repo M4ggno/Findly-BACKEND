@@ -1,0 +1,33 @@
+$kind: http-request
+name: 1. Meu perfil
+order: 1000
+method: GET
+url: '{{base_url}}/api/users/me/'
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{access_token}}'
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('200 OK', () => pm.response.to.have.status(200));
+
+      const user = pm.response.json();
+
+      if (pm.response.code === 200) {
+        pm.environment.set('user_id', user.id);
+        pm.test('Perfil é do usuário autenticado', () => {
+          pm.expect(user.email).to.eql(pm.environment.get('login_email'));
+        });
+        pm.test('Campos sensíveis não são expostos', () => {
+          pm.expect(user).to.not.have.property('password');
+          pm.expect(user).to.not.have.property('is_superuser');
+        });
+      }
+description: |-
+  Retorna o perfil do usuário dono do `access_token`.
+
+  Campos: `id`, `email`, `full_name`, `phone`, `role`, `is_active`,
+  `date_joined`. A senha nunca é exposta.

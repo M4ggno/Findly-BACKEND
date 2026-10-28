@@ -1,0 +1,82 @@
+name: Findly Local
+values:
+  - key: base_url
+    value: 'http://localhost:8000'
+    enabled: true
+    type: default
+    description: URL da API rodando via Docker Compose.
+  - key: demo_name
+    value: 'Maria Apresentação'
+    enabled: true
+    type: default
+    description: Nome usado no cadastro de demonstração.
+  - key: demo_email
+    value: 'apresentacao@findly.local'
+    enabled: true
+    type: default
+    description: E-mail da conta criada no cadastro. Use outro se já existir.
+  - key: demo_password
+    value: 'S3nh@Forte!2026'
+    enabled: true
+    type: secret
+    description: Senha usada no cadastro (apenas desenvolvimento local).
+  - key: login_email
+    value: 'apresentacao@findly.local'
+    enabled: true
+    type: default
+    description: E-mail usado no login. Troque para a conta admin ao testar /api/users/.
+  - key: login_password
+    value: 'S3nh@Forte!2026'
+    enabled: true
+    type: secret
+    description: Senha usada no login (alterada automaticamente após o reset).
+  - key: access_token
+    value: ''
+    enabled: true
+    type: secret
+    description: Preenchido pelo script do Login; enviado como Bearer nas rotas protegidas.
+  - key: refresh_token
+    value: ''
+    enabled: true
+    type: secret
+    description: Preenchido pelo Login e atualizado pela rotação do Refresh.
+  - key: user_id
+    value: ''
+    enabled: true
+    type: default
+    description: ID do usuário logado; usado nas rotas de administração.
+  - key: verification_uid
+    value: ''
+    enabled: true
+    type: default
+    description: Copie o uid do e-mail de verificação (console do Django).
+  - key: verification_token
+    value: ''
+    enabled: true
+    type: secret
+    description: Copie o token do e-mail de verificação (expira em 24 h).
+  - key: reset_uid
+    value: ''
+    enabled: true
+    type: default
+    description: Copie o uid do e-mail de redefinição de senha.
+  - key: reset_token
+    value: ''
+    enabled: true
+    type: secret
+    description: Copie o token do e-mail de redefinição (expira em 1 h).
+  - key: new_password
+    value: 'N0vaS3nh@Forte!2026'
+    enabled: true
+    type: secret
+    description: Nova senha aplicada pelo fluxo de recuperação.
+  - key: admin_email
+    value: 'admin@findly.local'
+    enabled: true
+    type: default
+    description: Conta administradora local (crie/ajuste conforme seu banco).
+  - key: admin_password
+    value: ''
+    enabled: true
+    type: secret
+    description: Senha do admin local — não é versionada; preencha no seu ambiente.

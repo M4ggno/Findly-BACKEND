@@ -1,0 +1,28 @@
+$kind: http-request
+name: 6. Reenviar verificação
+order: 6000
+method: POST
+url: '{{base_url}}/api/auth/resend-verification/'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "email": "{{login_email}}"
+    }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('202 Accepted', () => pm.response.to.have.status(202));
+      pm.test('Resposta genérica (anti-enumeração)', () => {
+        pm.expect(pm.response.json()).to.have.property('detail');
+      });
+description: |-
+  Reenvia o e-mail de confirmação para contas **ainda inativas**.
+
+  Responde sempre `202` com mensagem genérica, mesmo se o e-mail não existir
+  ou já estiver verificado — isso evita que alguém descubra quais e-mails estão
+  cadastrados.

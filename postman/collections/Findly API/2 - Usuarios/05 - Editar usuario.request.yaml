@@ -1,0 +1,43 @@
+$kind: http-request
+name: 5. Editar usuário (admin)
+order: 5000
+method: PATCH
+url: '{{base_url}}/api/users/:id/'
+pathVariables:
+  - key: id
+    value: '{{user_id}}'
+    description: ID do usuário alvo (não pode ser o próprio admin).
+headers:
+  - key: Content-Type
+    value: application/json
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{access_token}}'
+body:
+  type: json
+  content: |-
+    {
+      "role": "operator",
+      "is_active": true
+    }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('200 OK', () => pm.response.to.have.status(200));
+
+      if (pm.response.code === 200) {
+        console.log('Usuário atualizado. Para ver o novo papel, faça login com ele.');
+      }
+description: |-
+  **Somente admin.** Edita dados cadastrais, papel e situação da conta.
+
+  - `role`: `common`, `operator` ou `admin`.
+  - `is_active=false`: desativa a conta, **revoga os refresh tokens** e invalida
+    o access token imediatamente.
+  - O admin **não pode editar o próprio registro** por aqui (`400`) — use
+    `/api/users/me/`.
+  - Não existe `POST`/`DELETE`: contas nascem no cadastro e são desativadas,
+    preservando histórico.

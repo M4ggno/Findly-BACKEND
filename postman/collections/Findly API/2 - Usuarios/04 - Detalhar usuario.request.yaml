@@ -1,0 +1,24 @@
+$kind: http-request
+name: 4. Detalhar usuário (admin)
+order: 4000
+method: GET
+url: '{{base_url}}/api/users/:id/'
+pathVariables:
+  - key: id
+    value: '{{user_id}}'
+    description: ID do usuário (padrão = usuário logado).
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{access_token}}'
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('200 OK', () => pm.response.to.have.status(200));
+description: |-
+  **Somente admin.** Retorna uma conta pelo `id`.
+
+  O `id` vem da variável `user_id` (preenchida no login). Troque para o ID de
+  outro usuário ou copie um `id` da listagem.

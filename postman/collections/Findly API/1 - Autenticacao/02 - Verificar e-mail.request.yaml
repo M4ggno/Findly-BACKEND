@@ -1,0 +1,35 @@
+$kind: http-request
+name: 2. Verificar e-mail
+order: 2000
+method: POST
+url: '{{base_url}}/api/auth/verify-email/'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "uid": "{{verification_uid}}",
+      "token": "{{verification_token}}"
+    }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('200 OK', () => pm.response.to.have.status(200));
+
+      if (pm.response.code === 200) {
+        console.log('Conta ativada. Agora execute o Login.');
+      }
+description: |-
+  Ativa a conta usando `uid` e `token` recebidos por e-mail.
+
+  No ambiente local o e-mail é impresso no console do Django:
+
+  ```
+  docker compose logs -f web
+  ```
+
+  Copie os valores para `verification_uid` e `verification_token` no environment
+  (ou cole direto no body). O token é de **uso único** e expira em 24 h.

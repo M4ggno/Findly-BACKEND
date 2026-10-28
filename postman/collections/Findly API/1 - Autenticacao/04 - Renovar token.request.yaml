@@ -1,0 +1,38 @@
+$kind: http-request
+name: 4. Renovar token (refresh)
+order: 4000
+method: POST
+url: '{{base_url}}/api/auth/refresh/'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "refresh": "{{refresh_token}}"
+    }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('200 OK', () => pm.response.to.have.status(200));
+
+      const data = pm.response.json();
+
+      if (pm.response.code === 200) {
+        pm.environment.set('access_token', data.access);
+        pm.environment.set('refresh_token', data.refresh);
+        pm.test('Refresh foi rotacionado', () => {
+          pm.expect(data.refresh).to.be.a('string');
+        });
+        console.log('Novo par salvo. O refresh anterior foi para a blacklist.');
+      }
+description: |-
+  Gera um novo par `access`/`refresh` a partir do refresh atual.
+
+  A rotação está habilitada: **o refresh usado é invalidado**. Rodar esta
+  requisição duas vezes seguidas com o mesmo refresh antigo retorna `401` —
+  é assim que a API detecta reutilização de token.
+
+  O script atualiza `access_token` e `refresh_token` no environment.

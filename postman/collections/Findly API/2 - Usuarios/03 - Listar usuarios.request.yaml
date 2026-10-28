@@ -1,0 +1,53 @@
+$kind: http-request
+name: 3. Listar usuários (admin)
+order: 3000
+method: GET
+url: '{{base_url}}/api/users/'
+queryParams:
+  - key: search
+    value: ''
+    description: Busca por e-mail, nome ou telefone.
+    disabled: true
+  - key: role
+    value: operator
+    description: 'Filtro por papel: common, operator ou admin.'
+    disabled: true
+  - key: is_active
+    value: 'true'
+    description: Filtro por situação da conta.
+    disabled: true
+  - key: ordering
+    value: '-date_joined'
+    description: Ordenação (date_joined, email, full_name, role).
+    disabled: true
+  - key: page
+    value: '1'
+    description: Página (20 itens por padrão).
+    disabled: true
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{access_token}}'
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('200 OK', () => pm.response.to.have.status(200));
+
+      const body = pm.response.json();
+
+      if (pm.response.code === 200) {
+        pm.test('Listagem paginada', () => {
+          pm.expect(body).to.have.property('count');
+          pm.expect(body).to.have.property('results');
+        });
+      }
+description: |-
+  **Somente admin.** Lista contas com paginação (`count`, `next`, `previous`,
+  `results`).
+
+  Filtros opcionais (habilite no Postman): `search`, `role`, `is_active`,
+  `ordering`, `page`. Sem filtros, retorna todos os usuários.
+
+  - `403`: usuário autenticado não tem papel `admin`.

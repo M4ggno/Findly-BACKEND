@@ -1,0 +1,46 @@
+$kind: collection
+name: Findly API
+description: |-
+  # Findly API — Autenticação e Usuários
+
+  Collection de apresentação e integração do front-end com o backend Findly.
+
+  ## Antes de começar
+
+  1. Suba o ambiente local: `docker compose up -d --build`
+  2. Confirme que a API responde em `{{base_url}}` (padrão `http://localhost:8000`).
+  3. Selecione o environment **Findly Local** (canto superior direito do Postman).
+  4. A documentação interativa fica em http://localhost:8000/api/docs/ e o schema em `/api/schema/`.
+
+  ## Autenticação (JWT)
+
+  - `POST /api/auth/login/` devolve `access` + `refresh` e os dados do usuário.
+  - O `access` vai no header `Authorization: Bearer <token>` (as requisições protegidas já usam `{{access_token}}`).
+  - O `access` expira em **30 min**; `POST /api/auth/refresh/` gera um novo par e **invalida o refresh anterior** (rotação + blacklist).
+  - `POST /api/auth/logout/` coloca o `refresh` na blacklist.
+  - Contas novas nascem **inativas** e só logam depois de `POST /api/auth/verify-email/`.
+
+  > Os scripts das requisições salvam `access_token`, `refresh_token` e `user_id` no environment automaticamente.
+
+  ## Roteiro de apresentação (≈10 min)
+
+  1. **Cadastro** — mostra a conta criada inativa (`201`).
+  2. Abra o e-mail no console do Django: `docker compose logs -f web` (backend de e-mail = console em dev).
+  3. **Verificar e-mail** — cole `uid` e `token` nas variáveis `verification_uid` / `verification_token`.
+  4. **Login** — access/refresh são salvos no environment; mostre o payload do usuário.
+  5. **Meu perfil** — prova que o Bearer token autentica.
+  6. **Atualizar perfil** — `PATCH` em `full_name`/`phone`.
+  7. **Renovar token** — mostre a rotação; rodar de novo com o refresh antigo dá `401`.
+  8. **Listar usuários** — troque `login_email`/`login_password` para uma conta **admin**, faça login de novo e rode as rotas de administração.
+  9. **Logout** — encerra a sessão e limpa os tokens do environment.
+  10. **Recuperação de senha** — solicitar, pegar `uid`/`token` no console e confirmar; todas as sessões antigas são revogadas.
+
+  ## Observações
+
+  - Erros seguem o padrão DRF: `{"campo": ["mensagem"]}` ou `{"detail": "..."}`.
+  - Rotas de autenticação têm throttling (`login` 20/min, `cadastro` 5/h, `reset` 5/h). Em caso de `429`, aguarde a janela.
+  - As credenciais do environment são **somente para desenvolvimento local**.
+variables:
+  - key: base_url
+    value: 'http://localhost:8000'
+    description: URL da API no Docker local.

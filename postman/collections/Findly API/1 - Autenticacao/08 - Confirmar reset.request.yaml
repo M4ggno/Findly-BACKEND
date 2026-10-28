@@ -1,0 +1,38 @@
+$kind: http-request
+name: 8. Confirmar reset de senha
+order: 8000
+method: POST
+url: '{{base_url}}/api/auth/password-reset/confirm/'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "uid": "{{reset_uid}}",
+      "token": "{{reset_token}}",
+      "new_password": "{{new_password}}",
+      "new_password_confirm": "{{new_password}}"
+    }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('200 OK', () => pm.response.to.have.status(200));
+
+      if (pm.response.code === 200) {
+        pm.environment.set('login_password', pm.environment.get('new_password'));
+        pm.environment.unset('access_token');
+        pm.environment.unset('refresh_token');
+        console.log('Senha alterada. Faça login novamente com a nova senha.');
+      }
+description: |-
+  Define a nova senha e **revoga todas as sessões** anteriores do usuário
+  (todos os refresh tokens vão para a blacklist).
+
+  O token é de uso único e expira em 1 hora. O script atualiza
+  `login_password` para a nova senha e limpa os tokens — depois é só executar
+  **Login** novamente.
+
+  - `400`: token inválido/expirado, senhas diferentes ou senha fraca.

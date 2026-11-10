@@ -35,6 +35,27 @@ description: |-
   9. **Logout** — encerra a sessão e limpa os tokens do environment.
   10. **Recuperação de senha** — solicitar, pegar `uid`/`token` no console e confirmar; todas as sessões antigas são revogadas.
 
+  ## Módulos desta collection
+
+  | Pasta | Conteúdo |
+  | :--- | :--- |
+  | `1 - Autenticacao` | Cadastro, verificação, login, refresh, logout e recuperação de senha |
+  | `2 - Usuarios` | Perfil (`/me`) e gestão de contas (admin) |
+  | `3 - Itens` | Achados, perdidos, fotos e máquina de estados |
+  | `4 - Operacoes` | Pontos de coleta, custódia, claims e retirada por QR |
+  | `5 - Auditoria` | Histórico do item e trilha global (admin) |
+  | `6 - Manutencao` | Verificação das tarefas automáticas e das notificações |
+
+  ## Fluxo completo de demonstração
+
+  1. **Login** com uma conta comum e cadastre um **achado** (pasta 3).
+  2. Faça login como **admin/operador** e crie/liste um **ponto de coleta** (pasta 4).
+  3. **Transfira a custódia** do achado para o ponto.
+  4. Volte à conta comum e **abra um claim** para o item.
+  5. Como admin/operador, **aprove o claim**: o QR de retirada é emitido.
+  6. **Confirme a retirada** com o token do QR (a variável é salva automaticamente).
+  7. Consulte o **histórico** (pasta 5) e os **itens expirados** (pasta 6).
+
   ## Observações
 
   - Erros seguem o padrão DRF: `{"campo": ["mensagem"]}` ou `{"detail": "..."}`.

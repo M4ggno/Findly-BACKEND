@@ -1,0 +1,22 @@
+$kind: http-request
+name: 3. Detalhar ponto de coleta
+order: 3000
+method: GET
+url: '{{base_url}}/api/operations/points/:id/'
+pathVariables:
+  - key: id
+    value: '{{point_id}}'
+    description: ID do ponto de coleta.
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{access_token}}'
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('200 OK', () => pm.response.to.have.status(200));
+description: |-
+  Detalhe do ponto, incluindo operadores, ocupação atual e disponibilidade.
+  Retorna `404` se o ponto não existir.

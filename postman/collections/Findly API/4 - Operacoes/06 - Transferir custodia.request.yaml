@@ -1,0 +1,49 @@
+$kind: http-request
+name: 6. Transferir custódia
+order: 6000
+method: POST
+url: '{{base_url}}/api/operations/items/found/:code/custody/transfer/'
+pathVariables:
+  - key: code
+    value: '{{found_code}}'
+    description: Código público do achado.
+headers:
+  - key: Content-Type
+    value: application/json
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{access_token}}'
+body:
+  type: json
+  content: |-
+    {
+      "collection_point": {{point_id}},
+      "note": "Entrada na portaria principal"
+    }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('201 Created', () => pm.response.to.have.status(201));
+
+      if (pm.response.code === 201) {
+        const data = pm.response.json();
+        pm.test('Registro aponta para o ponto', () => {
+          pm.expect(data.collection_point).to.have.property('id');
+        });
+        console.log('Custódia transferida para ' + data.collection_point.name);
+      } else if (pm.response.code === 403) {
+        console.log('Use uma conta operador/admin responsável pelo ponto.');
+      } else if (pm.response.code === 400) {
+        console.log(pm.response.json().detail);
+      }
+description: |-
+  **Operador/admin.** Fecha a custódia ativa, abre uma nova no ponto e move o
+  item `REPORTADO` para `EM_CUSTODIA` na mesma transação.
+
+  - Operador só transfere para ponto do qual é responsável.
+  - Capacidade do ponto é validada; ponto desativado é recusado.
+  - Grava `CUSTODY_TRANSFERRED` no histórico e notifica o autor do achado.
+  - `201`: registro de custódia criado; `400`: regra de negócio violada.

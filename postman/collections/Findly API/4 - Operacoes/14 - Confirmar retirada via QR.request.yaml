@@ -1,0 +1,44 @@
+$kind: http-request
+name: 14. Confirmar retirada via QR
+order: 14000
+method: POST
+url: '{{base_url}}/api/operations/withdrawals/confirm/'
+headers:
+  - key: Content-Type
+    value: application/json
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{access_token}}'
+body:
+  type: json
+  content: |-
+    {
+      "token": "{{withdrawal_token}}"
+    }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('200 OK', () => pm.response.to.have.status(200));
+
+      if (pm.response.code === 200) {
+        const data = pm.response.json();
+        pm.test('Item termina DEVOLVIDO', () => {
+          pm.expect(data.item.status).to.eql('DEVOLVIDO');
+        });
+        console.log('Retirada confirmada em ' + data.item.updated_at);
+        pm.environment.set('withdrawal_token', '');
+      } else {
+        console.log(pm.response.json().detail);
+      }
+description: |-
+  **Operador/admin.** Confirma a retirada lendo o QR (token puro ou payload
+  `FINDLY:WITHDRAWAL:<token>`).
+
+  - `200`: item vira `DEVOLVIDO`, custódia é fechada e `WITHDRAWAL_CONFIRMED` é
+    gravado na mesma transação; autor e reivindicante são notificados.
+  - `400`: token inválido, expirado, já usado ou de claim não aprovado.
+
+  O `withdrawal_token` é limpo do environment após o sucesso.

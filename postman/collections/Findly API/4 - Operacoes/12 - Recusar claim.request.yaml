@@ -1,0 +1,37 @@
+$kind: http-request
+name: 12. Recusar claim
+order: 12000
+method: POST
+url: '{{base_url}}/api/operations/claims/:id/reject/'
+pathVariables:
+  - key: id
+    value: '{{claim_id}}'
+    description: ID da reivindicação pendente.
+headers:
+  - key: Content-Type
+    value: application/json
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{access_token}}'
+body:
+  type: json
+  content: |-
+    {
+      "decision_note": "Características informadas não conferem com o item."
+    }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('200 OK', () => pm.response.to.have.status(200));
+
+      if (pm.response.code === 200) {
+        pm.test('Claim recusado', () => {
+          pm.expect(pm.response.json().status).to.eql('REJECTED');
+        });
+      }
+description: |-
+  **Operador/admin.** Recusa um claim pendente e grava `CLAIM_REJECTED` com a
+  justificativa. Claim não pendente retorna `400`.

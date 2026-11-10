@@ -1,0 +1,34 @@
+$kind: http-request
+name: 1. Histórico do item
+order: 1000
+method: GET
+url: '{{base_url}}/api/items/found/:code/history/'
+pathVariables:
+  - key: code
+    value: '{{found_code}}'
+    description: Código público do achado.
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{access_token}}'
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('200 OK', () => pm.response.to.have.status(200));
+
+      if (pm.response.code === 200) {
+        const events = pm.response.json();
+        pm.test('Trilha é uma lista sem paginação', () => {
+          pm.expect(events).to.be.an('array');
+        });
+        pm.test('Criação está registrada', () => {
+          pm.expect(events.some((event) => event.action === 'CREATED')).to.eql(true);
+        });
+        console.log(events.length + ' evento(s) no histórico.');
+      }
+description: |-
+  Histórico completo e imutável do item, sem paginação (autor, operador ou
+  admin). Cada evento traz `action`, `previous_status`, `new_status`,
+  `responsible`, `collection_point`, `metadata` e `created_at`.

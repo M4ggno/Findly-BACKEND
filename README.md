@@ -207,8 +207,8 @@ requisição):
 
 | Caminho | Conteúdo |
 | :--- | :--- |
-| `postman/collections/Findly API/` | 13 requisições: autenticação (cadastro, verificação, login, refresh, logout, reset) e usuários (`/me`, gestão admin) |
-| `postman/environments/Findly Local.environment.yaml` | `base_url`, credenciais de demonstração e variáveis de token |
+| `postman/collections/Findly API/` | 46 requisições em 6 pastas: autenticação (8), usuários (5), itens (12), operações (14), auditoria (3) e manutenção (4) |
+| `postman/environments/Findly Local.environment.yaml` | `base_url`, credenciais de demonstração e variáveis encadeadas (`found_code`, `point_id`, `claim_id`, `withdrawal_token`…) |
 
 **Como usar**
 
@@ -222,6 +222,26 @@ requisição):
 Os scripts das requisições salvam `access_token`, `refresh_token` e `user_id` no
 environment automaticamente. Em desenvolvimento, os e-mails de verificação e de
 reset aparecem no console (`docker compose logs -f web`).
+
+**Fluxo completo (itens → operações → auditoria)**
+
+| Pasta | O que demonstrar |
+| :--- | :--- |
+| `1 - Autenticacao` | Cadastro, verificação, login, refresh rotativo e logout |
+| `2 - Usuarios` | Perfil próprio e gestão de contas (admin) |
+| `3 - Itens` | Cadastro do achado/perdido, edição, transições, fotos |
+| `4 - Operacoes` | Ponto de coleta, transferência, claim, aprovação e retirada por QR |
+| `5 - Auditoria` | Histórico do item e trilha global (admin) |
+| `6 - Manutencao` | Itens/alertas expirados, claims recusadas e eventos automáticos |
+
+Os scripts encadeiam os IDs: cadastrar o achado salva `found_code`; criar/listar
+um ponto salva `point_id`; abrir/listar um claim salva `claim_id`; aprovar salva
+`withdrawal_token`, usado na confirmação da retirada. O token é então limpo do
+environment.
+
+> A pasta `6 - Manutencao` não chama tarefas: notificações e expiração são
+> efeitos do Celery/e-mail. Ela traz as requisições de **verificação** e os
+> comandos para rodar cada tarefa (ver descrição da pasta e README, seção 12).
 
 Também é possível executar pela CLI sem abrir o Postman:
 

@@ -1,0 +1,36 @@
+$kind: http-request
+name: 3. Claims recusadas automaticamente
+order: 3000
+method: GET
+url: '{{base_url}}/api/operations/claims/?status=REJECTED&ordering=-created_at'
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{access_token}}'
+queryParams:
+  - key: status
+    value: 'REJECTED'
+  - key: ordering
+    value: '-created_at'
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('200 OK', () => pm.response.to.have.status(200));
+
+      if (pm.response.code === 200) {
+        const data = pm.response.json();
+        const auto = (data.results || []).filter(
+          (claim) =>
+            claim.reviewed_by === null &&
+            claim.decision_note &&
+            claim.decision_note.toLowerCase().includes('expirado')
+        );
+        console.log(auto.length + ' claim(s) recusado(s) pela expiração automática.');
+      }
+description: |-
+  Claims pendentes de um item expirado são recusados na mesma transação da
+  transição, com `reviewed_by = null` e justificativa automática.
+
+  Requer conta operador/admin para enxergar claims de outros usuários.

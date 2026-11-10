@@ -1,0 +1,35 @@
+$kind: http-request
+name: 2. Alertas de perda expirados
+order: 2000
+method: GET
+url: '{{base_url}}/api/items/lost/?status=EXPIRADO&ordering=-updated_at'
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{access_token}}'
+queryParams:
+  - key: status
+    value: 'EXPIRADO'
+  - key: ordering
+    value: '-updated_at'
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('200 OK', () => pm.response.to.have.status(200));
+
+      if (pm.response.code === 200) {
+        const data = pm.response.json();
+        console.log((data.count || 0) + ' alerta(s) EXPIRADO(s).');
+        if (data.results && data.results.length) {
+          pm.environment.set('lost_code', data.results[0].public_code);
+        }
+      }
+description: |-
+  Lista os alertas encerrados como `EXPIRADO` pela tarefa
+  `apps.items.tasks.expire_lost_reports` (`LOST_REPORT_EXPIRATION_DAYS`).
+
+  ```bash
+  docker compose exec web python manage.py shell -c "from apps.items.tasks import expire_lost_reports; print(expire_lost_reports())"
+  ```

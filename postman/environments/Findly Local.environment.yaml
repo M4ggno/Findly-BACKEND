@@ -80,3 +80,58 @@ values:
     enabled: true
     type: secret
     description: Senha do admin local — não é versionada; preencha no seu ambiente.
+  - key: found_code
+    value: ''
+    enabled: true
+    type: default
+    description: Código público do achado; salvo pela listagem/cadastro da pasta 3.
+  - key: lost_code
+    value: ''
+    enabled: true
+    type: default
+    description: Código público do alerta de perda; salvo pela listagem/cadastro.
+  - key: photo_id
+    value: ''
+    enabled: true
+    type: default
+    description: ID da foto do achado; salvo pelo upload.
+  - key: point_id
+    value: '1'
+    enabled: true
+    type: default
+    description: ID do ponto de coleta; salvo ao listar/criar um ponto.
+  - key: point_name
+    value: 'Portaria Principal'
+    enabled: true
+    type: default
+    description: Nome usado na criação do ponto de coleta.
+  - key: point_address
+    value: 'Rua das Flores, 100 - Térreo'
+    enabled: true
+    type: default
+    description: Endereço usado na criação do ponto de coleta.
+  - key: point_capacity
+    value: '50'
+    enabled: true
+    type: default
+    description: Capacidade do ponto (vazio = ilimitado).
+  - key: claim_id
+    value: ''
+    enabled: true
+    type: default
+    description: ID da reivindicação; salvo ao abrir/listar um claim.
+  - key: claim_message
+    value: 'É meu: possui uma etiqueta com meu nome no bolso interno.'
+    enabled: true
+    type: default
+    description: Justificativa enviada ao abrir uma reivindicação.
+  - key: withdrawal_token
+    value: ''
+    enabled: true
+    type: secret
+    description: Token do QR de retirada; salvo automaticamente na aprovação do claim.
+  - key: audit_event_id
+    value: ''
+    enabled: true
+    type: default
+    description: ID do evento de auditoria; salvo pela listagem de /api/audit/.

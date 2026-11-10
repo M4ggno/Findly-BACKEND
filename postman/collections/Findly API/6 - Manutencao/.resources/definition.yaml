@@ -1,0 +1,32 @@
+$kind: collection
+name: 6. Manutenção e notificações
+description: |-
+  Notificações e manutenção **não** têm rota HTTP: são efeitos do serviço
+  `notification_service` e de tarefas do Celery beat. Estas requisições servem
+  para **verificar o resultado** no banco após rodar os fluxos.
+
+  ## Notificações
+
+  | Gatilho | Onde testar | Destinatário |
+  | :--- | :--- | :--- |
+  | Match perdido × achado | Cadastrar achado ou alerta (pasta 3) | dono do alerta |
+  | Mudança de custódia | Transferir custódia (pasta 4) | autor do achado |
+  | Retirada liberada | Aprovar claim (pasta 4) | reivindicante |
+  | Entrega concluída | Confirmar retirada (pasta 4) | reivindicante + autor |
+
+  Em desenvolvimento o e-mail sai no console do Django:
+  `docker compose logs -f web`.
+
+  ## Manutenção
+
+  ```bash
+  docker compose exec web python manage.py setup_periodic_tasks
+  docker compose exec web python manage.py shell -c "from apps.items.tasks import expire_found_items; print(expire_found_items())"
+  docker compose exec web python manage.py shell -c "from apps.items.tasks import expire_lost_reports; print(expire_lost_reports())"
+  docker compose exec web python manage.py shell -c "from apps.operations.tasks import cleanup_expired_withdrawal_qrs; print(cleanup_expired_withdrawal_qrs())"
+  ```
+
+  As requisições abaixo conferem os estados gerados: itens/alertas `EXPIRADO`,
+  claims recusadas automaticamente e o evento `STATUS_CHANGED` com
+  `responsible = null`.
+order: 6000

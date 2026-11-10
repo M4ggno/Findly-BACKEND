@@ -1,0 +1,41 @@
+$kind: http-request
+name: 6. Enviar foto do achado
+order: 6000
+method: POST
+url: '{{base_url}}/api/items/found/:code/photos/'
+pathVariables:
+  - key: code
+    value: '{{found_code}}'
+    description: Código público do achado.
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{access_token}}'
+body:
+  type: formdata
+  content:
+    - key: image
+      type: file
+      src: []
+      description: Selecione um JPEG, PNG ou WebP de até 5 MB.
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('201 Created', () => pm.response.to.have.status(201));
+
+      if (pm.response.code === 201) {
+        const data = pm.response.json();
+        pm.environment.set('photo_id', String(data.id));
+        console.log('photo_id = ' + data.id);
+      } else if (pm.response.code === 400) {
+        console.log('Verifique formato (JPEG/PNG/WebP) e tamanho máximo de 5 MB.');
+      }
+description: |-
+  Envia uma foto em `multipart/form-data`, campo `image`. O backend corrige a
+  orientação, limita o maior lado a 1600 px, recomprime em JPEG e remove o EXIF.
+
+  - `201`: foto criada; `photo_id` salvo no environment.
+  - `400`: formato não suportado, arquivo acima de 5 MB ou imagem inválida.
+  - Autor, operador e admin podem enviar fotos.

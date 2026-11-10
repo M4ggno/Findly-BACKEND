@@ -1,0 +1,31 @@
+$kind: http-request
+name: 11. Editar perdido
+order: 11000
+method: PATCH
+url: '{{base_url}}/api/items/lost/:code/'
+pathVariables:
+  - key: code
+    value: '{{lost_code}}'
+    description: Código público do alerta de perda.
+headers:
+  - key: Content-Type
+    value: application/json
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{access_token}}'
+body:
+  type: json
+  content: |-
+    {
+      "contact_note": "Também estou na portaria das 8h às 18h."
+    }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('200 OK', () => pm.response.to.have.status(200));
+description: |-
+  Edita o alerta. O dono só edita enquanto `ABERTO`; admin edita em qualquer
+  estado. Alertas cancelados/expirados retornam `403` ao dono.

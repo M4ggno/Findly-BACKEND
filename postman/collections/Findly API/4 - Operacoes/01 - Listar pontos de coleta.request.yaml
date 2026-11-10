@@ -1,0 +1,51 @@
+$kind: http-request
+name: 1. Listar pontos de coleta
+order: 1000
+method: GET
+url: '{{base_url}}/api/operations/points/?page=1'
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{access_token}}'
+queryParams:
+  - key: page
+    value: '1'
+    description: Página da listagem (20 pontos por página).
+  - key: is_active
+    value: 'true'
+    disabled: true
+  - key: has_capacity
+    value: 'true'
+    description: 'true lista apenas pontos com vaga livre.'
+    disabled: true
+  - key: operator
+    value: '{{user_id}}'
+    description: ID do operador responsável.
+    disabled: true
+  - key: search
+    value: ''
+    description: Busca em nome e endereço.
+    disabled: true
+  - key: ordering
+    value: 'name'
+    disabled: true
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('200 OK', () => pm.response.to.have.status(200));
+
+      const data = pm.response.json();
+
+      if (data.results && data.results.length) {
+        pm.environment.set('point_id', String(data.results[0].id));
+        console.log('point_id = ' + data.results[0].id);
+      } else {
+        console.log('Nenhum ponto ainda: rode a requisição 2 (Criar ponto, admin).');
+      }
+description: |-
+  Lista os pontos de coleta. O script salva o `id` do primeiro em `point_id`.
+
+  A leitura inclui `operators_display`, `occupancy` e `has_capacity`.
+  Filtros: `is_active`, `operator`, `has_capacity`, `search` e `ordering`.

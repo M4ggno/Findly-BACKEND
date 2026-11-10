@@ -1,0 +1,41 @@
+$kind: http-request
+name: 5. Histórico de custódia
+order: 5000
+method: GET
+url: '{{base_url}}/api/operations/items/found/:code/custody/'
+pathVariables:
+  - key: code
+    value: '{{found_code}}'
+    description: Código público do achado.
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{access_token}}'
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('200 OK', () => pm.response.to.have.status(200));
+
+      if (pm.response.code === 200) {
+        const records = pm.response.json();
+        pm.test('Resposta é uma lista sem paginação', () => {
+          pm.expect(records).to.be.an('array');
+        });
+        const open = records.find((record) => record.is_active);
+        if (open) {
+          console.log(
+            'Custódia atual: ' +
+              (open.collection_point
+                ? open.collection_point.name
+                : open.held_by_user.full_name)
+          );
+        }
+      }
+description: |-
+  Histórico completo de custódia do item (sem paginação), com autor, operador
+  ou admin. Cada registro tem `held_by_user`, `collection_point`, `started_at`,
+  `ended_at` e `is_active`. Apenas um registro fica ativo por vez.
+
+  `404` se o item não existir; `403` para quem não participa da operação.

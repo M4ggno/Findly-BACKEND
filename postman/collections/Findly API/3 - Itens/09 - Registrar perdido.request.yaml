@@ -1,0 +1,46 @@
+$kind: http-request
+name: 9. Registrar perdido
+order: 9000
+method: POST
+url: '{{base_url}}/api/items/lost/'
+headers:
+  - key: Content-Type
+    value: application/json
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{access_token}}'
+body:
+  type: json
+  content: |-
+    {
+      "title": "Carteira de couro preta",
+      "description": "Carteira com documentos e cartões.",
+      "category": "carteiras",
+      "lost_at": "2026-11-08T12:00:00Z",
+      "lost_location": "Recepção do prédio A",
+      "contact_note": "Falar pelo chat da plataforma."
+    }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('201 Created', () => pm.response.to.have.status(201));
+
+      if (pm.response.code === 201) {
+        const data = pm.response.json();
+        pm.test('Alerta nasce ABERTO', () => {
+          pm.expect(data.status).to.eql('ABERTO');
+        });
+        pm.environment.set('lost_code', data.public_code);
+        console.log('lost_code = ' + data.public_code);
+      }
+description: |-
+  Abre um alerta de perda (`ABERTO`). `public_code` é salvo em `lost_code`.
+
+  - `201`: alerta criado.
+  - `400`: campos inválidos ou `lost_at` no futuro.
+
+  Se já existir achado compatível (mesma categoria, encontrado depois da perda
+  e com palavra em comum), o dono recebe a lista por e-mail/push.

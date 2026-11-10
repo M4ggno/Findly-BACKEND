@@ -1,0 +1,38 @@
+$kind: http-request
+name: 4. Histórico da expiração automática
+order: 4000
+method: GET
+url: '{{base_url}}/api/items/found/:code/history/'
+pathVariables:
+  - key: code
+    value: '{{found_code}}'
+    description: Código público de um item expirado.
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{access_token}}'
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('200 OK', () => pm.response.to.have.status(200));
+
+      if (pm.response.code === 200) {
+        const events = pm.response.json();
+        const auto = events.filter(
+          (event) =>
+            event.action === 'STATUS_CHANGED' &&
+            event.new_status === 'EXPIRADO' &&
+            event.responsible === null
+        );
+        pm.test('Expiração registrada sem responsável', () => {
+          pm.expect(auto.length).to.be.greaterThan(0);
+        });
+        console.log(auto.length + ' evento(s) de expiração automática.');
+      }
+description: |-
+  Confirma na trilha que a expiração foi uma ação do sistema:
+  `action = STATUS_CHANGED`, `new_status = EXPIRADO` e `responsible = null`.
+
+  Use o `found_code` de um item retornado pelas requisições 1 ou 2.

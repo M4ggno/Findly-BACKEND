@@ -1,0 +1,59 @@
+$kind: http-request
+name: 2. Listar eventos de auditoria
+order: 2000
+method: GET
+url: '{{base_url}}/api/audit/?page=1'
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{access_token}}'
+queryParams:
+  - key: page
+    value: '1'
+    description: Página da listagem (20 eventos por página).
+  - key: item
+    value: '{{found_code}}'
+    description: Código público do item.
+    disabled: true
+  - key: action
+    value: 'STATUS_CHANGED'
+    description: 'CREATED, STATUS_CHANGED, CUSTODY_TRANSFERRED, CLAIM_APPROVED, CLAIM_REJECTED, CLAIM_CANCELLED, WITHDRAWAL_CONFIRMED'
+    disabled: true
+  - key: collection_point
+    value: '{{point_id}}'
+    description: ID do ponto de coleta.
+    disabled: true
+  - key: date_from
+    value: '2026-11-01T00:00:00Z'
+    disabled: true
+  - key: date_to
+    value: '2026-11-30T23:59:59Z'
+    disabled: true
+  - key: search
+    value: ''
+    description: Busca em código/título do item, responsável e ponto.
+    disabled: true
+  - key: ordering
+    value: '-created_at'
+    disabled: true
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('200 OK', () => pm.response.to.have.status(200));
+
+      const data = pm.response.json();
+
+      if (data.results && data.results.length) {
+        pm.environment.set('audit_event_id', String(data.results[0].id));
+        console.log('audit_event_id = ' + data.results[0].id);
+      } else if (pm.response.code === 403) {
+        console.log('Faça login com uma conta admin para consultar a trilha global.');
+      }
+description: |-
+  **Somente admin.** Lista a trilha global, paginada. O script salva o `id` do
+  primeiro evento em `audit_event_id`.
+
+  Filtros: `item`, `action`, `collection_point`, `date_from`, `date_to`,
+  `search` e `ordering`.

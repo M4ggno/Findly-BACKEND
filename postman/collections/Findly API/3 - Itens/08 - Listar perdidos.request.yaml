@@ -1,0 +1,52 @@
+$kind: http-request
+name: 8. Listar perdidos
+order: 8000
+method: GET
+url: '{{base_url}}/api/items/lost/?page=1'
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{access_token}}'
+queryParams:
+  - key: page
+    value: '1'
+    description: Página da listagem (20 itens por página).
+  - key: status
+    value: 'ABERTO'
+    description: 'ABERTO, ENCONTRADO, CANCELADO, EXPIRADO'
+    disabled: true
+  - key: category
+    value: 'carteiras'
+    disabled: true
+  - key: mine
+    value: 'true'
+    description: 'true lista apenas os alertas do usuário logado.'
+    disabled: true
+  - key: search
+    value: ''
+    disabled: true
+  - key: ordering
+    value: '-created_at'
+    disabled: true
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('200 OK', () => pm.response.to.have.status(200));
+
+      const data = pm.response.json();
+
+      if (data.results && data.results.length) {
+        pm.environment.set('lost_code', data.results[0].public_code);
+        console.log('lost_code = ' + data.results[0].public_code);
+      } else {
+        console.log('Nenhum alerta ainda: rode a requisição 9 (Registrar perdido).');
+      }
+description: |-
+  Lista os alertas de perda com paginação e filtros. O script salva o
+  `public_code` do primeiro resultado em `lost_code`.
+
+  - Filtros: `status`, `category`, `lost_after`, `lost_before`, `mine`,
+    `search` e `ordering`.
+  - O dono aparece apenas como `{"id", "full_name"}`.

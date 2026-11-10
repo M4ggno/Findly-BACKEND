@@ -1,0 +1,32 @@
+$kind: http-request
+name: 3. Detalhar achado
+order: 3000
+method: GET
+url: '{{base_url}}/api/items/found/:code/'
+pathVariables:
+  - key: code
+    value: '{{found_code}}'
+    description: Código público do achado.
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{access_token}}'
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('200 OK', () => pm.response.to.have.status(200));
+
+      if (pm.response.code === 200) {
+        const data = pm.response.json();
+        pm.test('Código confere com o environment', () => {
+          pm.expect(data.public_code).to.eql(pm.environment.get('found_code'));
+        });
+        pm.test('Fotos vêm como lista', () => {
+          pm.expect(data.photos).to.be.an('array');
+        });
+      }
+description: |-
+  Detalhe do achado com fotos, `category_display`, `status_display` e datas.
+  Retorna `404` se o código não existir.

@@ -1,0 +1,29 @@
+$kind: http-request
+name: 13. Cancelar claim
+order: 13000
+method: POST
+url: '{{base_url}}/api/operations/claims/:id/cancel/'
+pathVariables:
+  - key: id
+    value: '{{claim_id}}'
+    description: ID da reivindicação pendente.
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{access_token}}'
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('200 OK', () => pm.response.to.have.status(200));
+
+      if (pm.response.code === 200) {
+        pm.test('Claim cancelado', () => {
+          pm.expect(pm.response.json().status).to.eql('CANCELLED');
+        });
+      }
+description: |-
+  Cancela a própria reivindicação (somente enquanto `PENDING`). Admin também
+  pode cancelar. Grava `CLAIM_CANCELLED`; não libera o item para outro claim
+  aprovado.

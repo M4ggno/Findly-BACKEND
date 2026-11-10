@@ -1,0 +1,39 @@
+$kind: http-request
+name: 4. Editar achado
+order: 4000
+method: PATCH
+url: '{{base_url}}/api/items/found/:code/'
+pathVariables:
+  - key: code
+    value: '{{found_code}}'
+    description: Código público do achado.
+headers:
+  - key: Content-Type
+    value: application/json
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{access_token}}'
+body:
+  type: json
+  content: |-
+    {
+      "title": "Carteira preta com documentos",
+      "found_location": "Recepção do prédio A - balcão"
+    }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('200 OK', () => pm.response.to.have.status(200));
+
+      if (pm.response.code === 200) {
+        console.log('Achado atualizado: ' + pm.response.json().title);
+      }
+description: |-
+  Edita título, descrição, categoria, data ou local do achado.
+
+  - Autor edita apenas enquanto `REPORTADO`; depois disso recebe `403`.
+  - Operador e admin editam em qualquer estado.
+  - O `status` **não** é editável aqui: use a requisição 5.

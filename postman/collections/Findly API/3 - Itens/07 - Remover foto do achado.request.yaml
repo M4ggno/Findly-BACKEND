@@ -1,0 +1,25 @@
+$kind: http-request
+name: 7. Remover foto do achado
+order: 7000
+method: DELETE
+url: '{{base_url}}/api/items/found/:code/photos/:photo_id/'
+pathVariables:
+  - key: code
+    value: '{{found_code}}'
+    description: Código público do achado.
+  - key: photo_id
+    value: '{{photo_id}}'
+    description: ID da foto; salvo pelo upload (requisição 6).
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{access_token}}'
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('204 No Content', () => pm.response.to.have.status(204));
+description: |-
+  Remove a foto do banco e do armazenamento (`204`). Autor, operador e admin
+  podem remover. Retorna `404` se a foto não pertencer ao item informado.

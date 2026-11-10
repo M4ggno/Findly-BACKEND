@@ -1,0 +1,52 @@
+$kind: http-request
+name: 11. Aprovar claim
+order: 11000
+method: POST
+url: '{{base_url}}/api/operations/claims/:id/approve/'
+pathVariables:
+  - key: id
+    value: '{{claim_id}}'
+    description: ID da reivindicação pendente.
+headers:
+  - key: Content-Type
+    value: application/json
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{access_token}}'
+body:
+  type: json
+  content: |-
+    {
+      "decision_note": "Propriedade confirmada na portaria."
+    }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('200 OK', () => pm.response.to.have.status(200));
+
+      if (pm.response.code === 200) {
+        const data = pm.response.json();
+        pm.test('Claim aprovado', () => {
+          pm.expect(data.status).to.eql('APPROVED');
+        });
+        if (data.withdrawal && data.withdrawal.token) {
+          pm.environment.set('withdrawal_token', data.withdrawal.token);
+          console.log('QR válido até ' + data.withdrawal.expires_at);
+          console.log('withdrawal_token salvo no environment.');
+        }
+      } else {
+        console.log(pm.response.json().detail);
+      }
+description: |-
+  **Operador/admin.** Aprova o claim, move o item para `AGUARDANDO_RETIRADA`,
+  emite o QR de **24 h / uso único** e recusa os demais claims pendentes.
+
+  - `200`: claim aprovado; `withdrawal_token` salvo no environment.
+  - `400`: claim não pendente, item fora de `EM_CUSTODIA`/`AGUARDANDO_RETIRADA`
+    ou item já com retirada autorizada.
+
+  O reivindicante recebe e-mail/push com o ponto e a validade; o token do QR
+  **não** é enviado por e-mail.

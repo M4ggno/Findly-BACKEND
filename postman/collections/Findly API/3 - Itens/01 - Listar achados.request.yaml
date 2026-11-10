@@ -1,0 +1,56 @@
+$kind: http-request
+name: 1. Listar achados
+order: 1000
+method: GET
+url: '{{base_url}}/api/items/found/?page=1'
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{access_token}}'
+queryParams:
+  - key: page
+    value: '1'
+    description: Página da listagem (20 itens por página).
+  - key: status
+    value: 'EM_CUSTODIA'
+    description: 'REPORTADO, EM_CUSTODIA, AGUARDANDO_RETIRADA, DEVOLVIDO, EXPIRADO, ENCAMINHADO'
+    disabled: true
+  - key: category
+    value: 'carteiras'
+    description: 'eletronicos, documentos, vestuario, chaves, carteiras, moveis, outros'
+    disabled: true
+  - key: mine
+    value: 'false'
+    description: 'true lista apenas os achados do usuário logado.'
+    disabled: true
+  - key: search
+    value: ''
+    description: Busca em título, descrição, local e código.
+    disabled: true
+  - key: ordering
+    value: '-created_at'
+    description: 'created_at, found_at, title ou status (prefixo - inverte).'
+    disabled: true
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('200 OK', () => pm.response.to.have.status(200));
+
+      const data = pm.response.json();
+
+      if (data.results && data.results.length) {
+        pm.environment.set('found_code', data.results[0].public_code);
+        console.log('found_code = ' + data.results[0].public_code);
+      } else {
+        console.log('Nenhum achado ainda: rode a requisição 2 (Cadastrar achado).');
+      }
+description: |-
+  Lista os achados com paginação e filtros. O script salva o `public_code` do
+  primeiro resultado em `found_code`, usado nas requisições seguintes.
+
+  - `200`: objeto paginado (`count`, `next`, `previous`, `results`).
+  - Filtros: `status`, `category`, `found_after`, `found_before`, `mine`,
+    `search` e `ordering`.
+  - O autor aparece apenas como `{"id", "full_name"}`.

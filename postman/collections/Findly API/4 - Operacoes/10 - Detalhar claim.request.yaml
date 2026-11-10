@@ -1,0 +1,33 @@
+$kind: http-request
+name: 10. Detalhar claim
+order: 10000
+method: GET
+url: '{{base_url}}/api/operations/claims/:id/'
+pathVariables:
+  - key: id
+    value: '{{claim_id}}'
+    description: ID da reivindicação.
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{access_token}}'
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('200 OK', () => pm.response.to.have.status(200));
+
+      if (pm.response.code === 200) {
+        const data = pm.response.json();
+        console.log('Claim ' + data.id + ': ' + data.status);
+        if (data.withdrawal) {
+          console.log('QR válido até ' + data.withdrawal.expires_at);
+        }
+      }
+description: |-
+  Detalhe do claim, incluindo `withdrawal` quando já aprovado (token, validade,
+  uso e URL do PNG).
+
+  - `403`: o claim é de outro usuário e você não é operador/admin.
+  - `404`: ID inexistente.

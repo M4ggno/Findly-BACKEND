@@ -1,0 +1,48 @@
+$kind: http-request
+name: 5. Mudar status do achado
+order: 5000
+method: POST
+url: '{{base_url}}/api/items/found/:code/status/'
+pathVariables:
+  - key: code
+    value: '{{found_code}}'
+    description: Código público do achado.
+headers:
+  - key: Content-Type
+    value: application/json
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{access_token}}'
+body:
+  type: json
+  content: |-
+    {
+      "status": "EM_CUSTODIA"
+    }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('200 OK', () => pm.response.to.have.status(200));
+
+      if (pm.response.code === 200) {
+        const data = pm.response.json();
+        console.log('Status atual: ' + data.status);
+      } else {
+        console.log('Transição inválida para o estado atual do item.');
+      }
+description: |-
+  Aplica uma transição da máquina de estados. **Somente operador/admin.**
+
+  ```text
+  REPORTADO -> EM_CUSTODIA -> AGUARDANDO_RETIRADA -> DEVOLVIDO
+       |            |
+       +------------+--> EXPIRADO / ENCAMINHADO
+  ```
+
+  - Transição válida: `200` com o item atualizado.
+  - Estado final ou salto inválido: `400`.
+  - Na operação real, prefira **Transferir custódia** (pasta 4), que move para
+    `EM_CUSTODIA` e registra o ponto na mesma transação.

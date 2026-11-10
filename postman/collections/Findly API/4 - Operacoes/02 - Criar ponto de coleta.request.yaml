@@ -1,0 +1,43 @@
+$kind: http-request
+name: 2. Criar ponto de coleta
+order: 2000
+method: POST
+url: '{{base_url}}/api/operations/points/'
+headers:
+  - key: Content-Type
+    value: application/json
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{access_token}}'
+body:
+  type: json
+  content: |-
+    {
+      "name": "{{point_name}}",
+      "address": "{{point_address}}",
+      "opening_hours": "Seg a sex, 8h às 18h",
+      "capacity": 50,
+      "is_active": true,
+      "operators": []
+    }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('201 Created', () => pm.response.to.have.status(201));
+
+      if (pm.response.code === 201) {
+        const data = pm.response.json();
+        pm.environment.set('point_id', String(data.id));
+        console.log('point_id = ' + data.id);
+      } else if (pm.response.code === 403) {
+        console.log('Faça login com uma conta admin para criar pontos.');
+      }
+description: |-
+  **Somente admin.** Cria um ponto de coleta e salva o `id` em `point_id`.
+
+  - `capacity` vazio (`null`) significa capacidade ilimitada.
+  - `operators` recebe IDs de usuários com papel `operator` ou `admin`.
+  - Use `is_active=false` no `PATCH` para desativar sem perder o histórico.

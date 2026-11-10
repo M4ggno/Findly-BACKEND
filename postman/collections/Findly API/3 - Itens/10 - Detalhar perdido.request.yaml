@@ -1,0 +1,30 @@
+$kind: http-request
+name: 10. Detalhar perdido
+order: 10000
+method: GET
+url: '{{base_url}}/api/items/lost/:code/'
+pathVariables:
+  - key: code
+    value: '{{lost_code}}'
+    description: Código público do alerta de perda.
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{access_token}}'
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('200 OK', () => pm.response.to.have.status(200));
+
+      if (pm.response.code === 200) {
+        pm.test('Código confere com o environment', () => {
+          pm.expect(pm.response.json().public_code).to.eql(
+            pm.environment.get('lost_code')
+          );
+        });
+      }
+description: |-
+  Detalhe do alerta com `owner`, `category_display`, `status_display` e datas.
+  Retorna `404` se o código não existir.

@@ -1,0 +1,50 @@
+$kind: http-request
+name: 2. Cadastrar achado
+order: 2000
+method: POST
+url: '{{base_url}}/api/items/found/'
+headers:
+  - key: Content-Type
+    value: application/json
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{access_token}}'
+body:
+  type: json
+  content: |-
+    {
+      "title": "Carteira preta encontrada",
+      "description": "Carteira de couro com documentos e cartões.",
+      "category": "carteiras",
+      "found_at": "2026-11-08T18:30:00Z",
+      "found_location": "Recepção do prédio A"
+    }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('201 Created', () => pm.response.to.have.status(201));
+
+      if (pm.response.code === 201) {
+        const data = pm.response.json();
+        pm.test('Item nasce REPORTADO', () => {
+          pm.expect(data.status).to.eql('REPORTADO');
+        });
+        pm.test('Custódia inicial é do autor', () => {
+          pm.expect(data.reported_by).to.have.property('id');
+          pm.expect(data.reported_by).to.not.have.property('email');
+        });
+        pm.environment.set('found_code', data.public_code);
+        console.log('found_code = ' + data.public_code);
+      }
+description: |-
+  Cadastra um achado. O item nasce em `REPORTADO`, a custódia inicial fica com
+  quem registrou e um evento `CREATED` é gravado na mesma transação.
+
+  - `201`: achado criado; `public_code` salvo no environment.
+  - `400`: campos inválidos ou `found_at` no futuro.
+
+  Se existir alerta de perda compatível (mesma categoria + palavra em comum),
+  o dono é notificado por e-mail/push após o commit.

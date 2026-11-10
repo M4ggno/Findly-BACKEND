@@ -1,0 +1,30 @@
+$kind: http-request
+name: 12. Cancelar perdido
+order: 12000
+method: POST
+url: '{{base_url}}/api/items/lost/:code/cancel/'
+pathVariables:
+  - key: code
+    value: '{{lost_code}}'
+    description: Código público do alerta de perda.
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{access_token}}'
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('200 OK', () => pm.response.to.have.status(200));
+
+      if (pm.response.code === 200) {
+        pm.test('Alerta fica CANCELADO', () => {
+          pm.expect(pm.response.json().status).to.eql('CANCELADO');
+        });
+      }
+description: |-
+  Marca o alerta como `CANCELADO` (dono ou admin).
+
+  - `200`: cancelado.
+  - `400`: o alerta não está mais `ABERTO`.

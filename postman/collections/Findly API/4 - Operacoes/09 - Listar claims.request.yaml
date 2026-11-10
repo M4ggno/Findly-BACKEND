@@ -1,0 +1,51 @@
+$kind: http-request
+name: 9. Listar claims
+order: 9000
+method: GET
+url: '{{base_url}}/api/operations/claims/?page=1'
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{access_token}}'
+queryParams:
+  - key: page
+    value: '1'
+    description: Página da listagem (20 claims por página).
+  - key: item
+    value: '{{found_code}}'
+    description: Código público do item.
+    disabled: true
+  - key: status
+    value: 'PENDING'
+    description: 'PENDING, APPROVED, REJECTED, CANCELLED'
+    disabled: true
+  - key: mine
+    value: 'true'
+    description: 'true lista apenas os claims do usuário logado.'
+    disabled: true
+  - key: search
+    value: ''
+    description: Busca em código/título do item e nome do reivindicante.
+    disabled: true
+  - key: ordering
+    value: '-created_at'
+    disabled: true
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('200 OK', () => pm.response.to.have.status(200));
+
+      const data = pm.response.json();
+
+      if (data.results && data.results.length) {
+        pm.environment.set('claim_id', String(data.results[0].id));
+        console.log('claim_id = ' + data.results[0].id);
+      }
+description: |-
+  Lista claims. Comum vê apenas os próprios; operador/admin veem todos.
+  O script salva o `id` do primeiro resultado em `claim_id`.
+
+  Filtros: `status`, `item` (código público), `claimant`, `mine`, `date_from`,
+  `date_to`, `search` e `ordering`.

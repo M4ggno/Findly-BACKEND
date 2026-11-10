@@ -1,0 +1,15 @@
+$kind: collection
+name: 5. Auditoria
+description: |-
+  Trilha imutável de eventos (`apps.audit`).
+
+  - `GET /api/items/found/{code}/history/` — histórico completo do item, sem
+    paginação (autor, operador ou admin).
+  - `GET /api/audit/` e `GET /api/audit/{id}/` — consulta global, **somente
+    admin**.
+
+  Ações registradas: `CREATED`, `STATUS_CHANGED`, `CUSTODY_TRANSFERRED`,
+  `CLAIM_APPROVED`, `CLAIM_REJECTED`, `CLAIM_CANCELLED` e
+  `WITHDRAWAL_CONFIRMED`. Eventos automáticos (expiração, limpeza) têm
+  `responsible = null`.
+order: 5000

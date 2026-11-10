@@ -1,0 +1,47 @@
+$kind: http-request
+name: 8. Abrir claim
+order: 8000
+method: POST
+url: '{{base_url}}/api/operations/items/found/:code/claims/'
+pathVariables:
+  - key: code
+    value: '{{found_code}}'
+    description: Código público do achado.
+headers:
+  - key: Content-Type
+    value: application/json
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{access_token}}'
+body:
+  type: json
+  content: |-
+    {
+      "message": "{{claim_message}}"
+    }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('201 Created', () => pm.response.to.have.status(201));
+
+      if (pm.response.code === 201) {
+        const data = pm.response.json();
+        pm.test('Claim nasce PENDING', () => {
+          pm.expect(data.status).to.eql('PENDING');
+        });
+        pm.environment.set('claim_id', String(data.id));
+        console.log('claim_id = ' + data.id);
+      } else if (pm.response.code === 400) {
+        console.log(pm.response.json().detail);
+      }
+description: |-
+  Abre uma reivindicação para o item, com justificativa livre.
+
+  - `201`: claim `PENDING`; `claim_id` salvo no environment.
+  - `400`: item terminal, claim duplicado pendente ou **o próprio autor do
+    achado** tentando reivindicar.
+
+  > Use uma conta diferente da que cadastrou o achado.

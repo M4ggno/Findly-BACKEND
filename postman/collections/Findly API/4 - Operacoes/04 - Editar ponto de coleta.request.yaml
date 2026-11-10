@@ -1,0 +1,33 @@
+$kind: http-request
+name: 4. Editar ponto de coleta
+order: 4000
+method: PATCH
+url: '{{base_url}}/api/operations/points/:id/'
+pathVariables:
+  - key: id
+    value: '{{point_id}}'
+    description: ID do ponto de coleta.
+headers:
+  - key: Content-Type
+    value: application/json
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{access_token}}'
+body:
+  type: json
+  content: |-
+    {
+      "opening_hours": "Seg a sáb, 7h às 20h",
+      "capacity": 80
+    }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('200 OK', () => pm.response.to.have.status(200));
+description: |-
+  **Somente admin.** Edita nome, endereço, horário, capacidade, operadores e
+  situação do ponto. `is_active=false` desativa o ponto (transferências passam
+  a ser recusadas).

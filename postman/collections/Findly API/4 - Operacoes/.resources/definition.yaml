@@ -1,0 +1,26 @@
+$kind: collection
+name: 4. Operações
+description: |-
+  Pontos de coleta, custódia, claims e retirada por QR
+  (`/api/operations/`).
+
+  ## Papéis
+
+  - **Comum:** consulta pontos, vê o próprio histórico de custódia e abre
+    claims (não pode reivindicar o que cadastrou).
+  - **Operador:** transferência e decisão de claims apenas em pontos dos quais
+    é responsável; confirma retiradas.
+  - **Admin:** acesso total às operações.
+
+  ## Ordem sugerida
+
+  1. **Criar ponto** (admin) — `point_id` é salvo no environment.
+  2. **Transferir custódia** — leva o item `REPORTADO` para `EM_CUSTODIA`.
+  3. **Abrir claim** com outra conta — `claim_id` é salvo.
+  4. **Aprovar claim** — item vai para `AGUARDANDO_RETIRADA` e o QR de 24 h é
+     emitido; `withdrawal_token` é salvo automaticamente.
+  5. **Confirmar retirada** — item vira `DEVOLVIDO` e a custódia é fechada.
+
+  > O token do QR nunca aparece em e-mail; a notificação aponta para a conta
+  > autenticada do reivindicante.
+order: 4000

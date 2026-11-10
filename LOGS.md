@@ -943,6 +943,56 @@ preservando a trilha de auditoria.
 1. Coleção Postman de itens, operações e auditoria.
 2. Revisar envio de notificações via Celery quando o broker estiver disponível.
 
+## 🗓️ 2026-11-09 — Coleção Postman de itens, operações, auditoria e manutenção
+
+### 🎯 Objetivo
+Fechar a collection Postman para o front consumir toda a API: autenticação e
+usuários já existiam; faltavam itens, operações, auditoria e manutenção.
+
+### 📁 Estrutura criada
+| Pasta | Requisições | Conteúdo |
+| :--- | :--- | :--- |
+| `3 - Itens` | 12 | Achados, perdidos, fotos e máquina de estados |
+| `4 - Operacoes` | 14 | Pontos, custódia, claims e retirada por QR |
+| `5 - Auditoria` | 3 | Histórico do item e trilha global (admin) |
+| `6 - Manutencao` | 4 | Verificação das tarefas automáticas |
+
+Total da collection: **46 requisições** em 6 pastas, com `definition.yaml` por
+pasta e descrição do fluxo completo na definição da collection. O environment
+`Findly Local` ganhou as variáveis encadeadas `found_code`, `lost_code`,
+`photo_id`, `point_id`, `point_name`, `point_address`, `point_capacity`,
+`claim_id`, `claim_message`, `withdrawal_token` e `audit_event_id`.
+
+### 🔁 Encadeamento dos scripts
+- Cadastrar/listar achado grava `found_code`; perdido grava `lost_code`;
+  upload grava `photo_id`.
+- Criar/listar ponto grava `point_id`; abrir/listar claim grava `claim_id`.
+- Aprovar claim grava `withdrawal_token`; confirmar retirada limpa o token.
+- A pasta 6 apenas **verifica** estados (`EXPIRADO`, claims recusadas,
+  `STATUS_CHANGED` com `responsible = null`), porque notificações e manutenção
+  não têm rota HTTP.
+
+### ✅ Validações
+| Verificação | Resultado |
+| :--- | :--- |
+| `postman collection lint "postman/collections/Findly API"` | **46 scanned, 0 errors, 0 warnings** ✅ |
+| `postman environment lint "postman/environments/Findly Local.environment.yaml"` | limpo ✅ |
+| Fluxo HTTP real com `config.smoke_settings` (SQLite + LocMem) | login → achado → ponto → custódia → claim → aprovação → retirada **OK** ✅ |
+| Histórico do item após o fluxo | 7 eventos: `CREATED`, `CUSTODY_TRANSFERRED`, `CLAIM_APPROVED`, `WITHDRAWAL_CONFIRMED` + `STATUS_CHANGED` ✅ |
+| Etiqueta QR do item | `200 image/png` ✅ |
+
+### 📌 Decisões desta etapa
+- URLs com query params refletem **apenas** os parâmetros habilitados; os demais
+  ficam como `disabled: true` (exigência do lint v3).
+- A collection não chama Celery: a pasta 6 documenta os comandos e confere o
+  resultado no banco.
+- Senhas demo permanecem apenas locais; `admin_password` continua vazio no
+  versionamento.
+
+### ⏭️ Próximos passos
+1. Revisar envio de notificações via Celery quando o broker estiver disponível.
+2. Avaliar exemplos salvos (`.resources/*.resources/examples`) para o front.
+
 <!-- ===================================================================== -->
 <!-- NOVAS ENTRADAS DEVEM SER ADICIONADAS ACIMA DESTA LINHA               -->
 <!-- ===================================================================== -->

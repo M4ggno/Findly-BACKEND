@@ -1,0 +1,31 @@
+$kind: collection
+name: 3. Itens
+description: |-
+  Achados (`/api/items/found/`) e alertas de perda (`/api/items/lost/`).
+  Todas as rotas exigem `Authorization: Bearer {{access_token}}` e usam o
+  `public_code` de 10 caracteres em vez do ID sequencial.
+
+  ## Achados
+
+  - O cadastro nasce em `REPORTADO` e já cria a custódia inicial com quem
+    registrou.
+  - O autor edita apenas enquanto `REPORTADO`; operadores e admins editam
+    sempre.
+  - O status **não** é editável por `PATCH`: use `POST .../status/`.
+  - Não existe `DELETE` de item: o ciclo termina em `DEVOLVIDO`, `EXPIRADO` ou
+    `ENCAMINHADO`.
+
+  ## Perdidos
+
+  - O dono cria e mantém o alerta enquanto `ABERTO`.
+  - `POST .../cancel/` encerra o alerta como `CANCELADO`.
+
+  ## Fotos
+
+  - JPEG, PNG ou WebP, até 5 MB (multipart no campo `image`).
+  - O servidor corrige orientação, limita a 1600 px, recompõe em JPEG e remove
+    todo o EXIF antes de salvar.
+
+  Os scripts das requisições salvam `found_code`, `lost_code` e `photo_id` no
+  environment para encadear as chamadas seguintes.
+order: 3000

@@ -1,0 +1,38 @@
+$kind: http-request
+name: 1. Achados expirados
+order: 1000
+method: GET
+url: '{{base_url}}/api/items/found/?status=EXPIRADO&ordering=-updated_at'
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{access_token}}'
+queryParams:
+  - key: status
+    value: 'EXPIRADO'
+  - key: ordering
+    value: '-updated_at'
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('200 OK', () => pm.response.to.have.status(200));
+
+      if (pm.response.code === 200) {
+        const data = pm.response.json();
+        const total = data.count || 0;
+        console.log(total + ' achado(s) EXPIRADO(s).');
+        if (total > 0) {
+          pm.environment.set('found_code', data.results[0].public_code);
+        }
+      }
+description: |-
+  Lista os achados encerrados como `EXPIRADO` pela tarefa
+  `apps.items.tasks.expire_found_items`.
+
+  Rode a tarefa manualmente e consulte de novo:
+
+  ```bash
+  docker compose exec web python manage.py shell -c "from apps.items.tasks import expire_found_items; print(expire_found_items())"
+  ```

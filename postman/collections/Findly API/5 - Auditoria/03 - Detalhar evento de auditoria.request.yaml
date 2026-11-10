@@ -1,0 +1,28 @@
+$kind: http-request
+name: 3. Detalhar evento de auditoria
+order: 3000
+method: GET
+url: '{{base_url}}/api/audit/:id/'
+pathVariables:
+  - key: id
+    value: '{{audit_event_id}}'
+    description: ID do evento; salvo pela listagem.
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{access_token}}'
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('200 OK', () => pm.response.to.have.status(200));
+
+      if (pm.response.code === 200) {
+        const data = pm.response.json();
+        console.log(data.action + ': ' + data.previous_status + ' -> ' + data.new_status);
+      }
+description: |-
+  **Somente admin.** Detalhe de um evento da trilha. `404` se não existir.
+
+  Eventos são imutáveis: não há `PATCH` nem `DELETE` nesta rota.

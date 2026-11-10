@@ -1,0 +1,29 @@
+$kind: http-request
+name: 3. Remover inscrição
+order: 3000
+method: DELETE
+url: '{{base_url}}/api/notifications/subscriptions/:id/'
+pathVariables:
+  - key: id
+    value: '{{subscription_id}}'
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{access_token}}'
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('204 No Content', () => pm.response.to.have.status(204));
+
+      if (pm.response.code === 204) {
+        pm.environment.set('subscription_id', '');
+        console.log('subscription_id limpo.');
+      }
+description: |-
+  Remove uma inscrição **do próprio usuário**. Para inscrições de outros
+  usuários a API responde `404` (não revela a existência).
+
+  - `204`: removida.
+  - `404`: inscrição inexistente ou de outro usuário.

@@ -1,0 +1,53 @@
+$kind: http-request
+name: 2. Registrar inscrição
+order: 2000
+method: POST
+url: '{{base_url}}/api/notifications/subscriptions/'
+headers:
+  - key: Content-Type
+    value: application/json
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{access_token}}'
+body:
+  type: json
+  content: |-
+    {
+      "endpoint": "{{push_endpoint}}",
+      "keys": {
+        "p256dh": "{{push_p256dh}}",
+        "auth": "{{push_auth}}"
+      },
+      "user_agent": "Postman/Findly Local"
+    }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('201 Created', () => pm.response.to.have.status(201));
+
+      if (pm.response.code === 201) {
+        const data = pm.response.json();
+        pm.test('Inscrição ativa', () => pm.expect(data.is_active).to.eql(true));
+        pm.test('Chaves preservadas', () => {
+          pm.expect(data.keys).to.have.property('p256dh');
+          pm.expect(data.keys).to.have.property('auth');
+        });
+        pm.environment.set('subscription_id', data.id);
+        console.log('subscription_id = ' + data.id);
+      }
+description: |-
+  Registra (ou atualiza) a inscrição de Web Push do usuário autenticado.
+
+  Em produção, `endpoint` e `keys` vêm de `PushManager.subscribe()` no
+  navegador. No Postman, o environment traz valores de exemplo — a inscrição é
+  gravada normalmente, mas o provedor real não a conhece.
+
+  Reenviar o mesmo `endpoint` atualiza a inscrição em vez de duplicar;
+  se outro usuário entrar no mesmo navegador, ela passa a pertencer a ele.
+
+  - `201`: inscrição criada/atualizada.
+  - `400`: faltou `endpoint` ou o bloco `keys`.
+  - `401`: sem token.

@@ -1,0 +1,24 @@
+$kind: http-example
+id: a10000000000000000000002
+name: Perfil 200
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "id": 1,
+        "email": "demo@findly.local",
+        "full_name": "Usuária Demo",
+        "phone": "+55 11 99999-0000",
+        "role": "common",
+        "is_active": true,
+        "date_joined": "2026-11-10T09:00:00-03:00"
+      }
+description: |-
+  Perfil do usuário autenticado. Apenas `full_name` e `phone` são editáveis;
+  `email`, `role` e `is_active` são controlados pela administração.

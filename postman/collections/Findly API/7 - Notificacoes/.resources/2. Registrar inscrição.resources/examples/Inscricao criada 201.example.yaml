@@ -1,0 +1,33 @@
+$kind: http-example
+id: a10000000000000000000010
+name: Inscricao criada 201
+response:
+  statusCode: 201
+  statusText: Created
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "id": 1,
+        "endpoint": "https://push.example.com/subscriptions/demo-endpoint",
+        "keys": {
+          "p256dh": "BExampleP256dhPublicKeyPlaceholderForLocalTestingOnly",
+          "auth": "example-auth-secret"
+        },
+        "user_agent": "Postman/Findly Local",
+        "is_active": true,
+        "created_at": "2026-11-10T11:00:00-03:00",
+        "updated_at": "2026-11-10T11:00:00-03:00"
+      }
+description: |-
+  Inscrição de Web Push criada/atualizada para o usuário autenticado.
+
+  Reenviar o mesmo `endpoint` atualiza a inscrição em vez de duplicar (inclusive
+  quando outro usuário entra no mesmo navegador). O `id` é salvo em
+  `subscription_id` pelo script da requisição.
+
+  Sem `NOTIFICATIONS_PUSH_ENABLED=True` e par VAPID configurado, a inscrição é
+  salva normalmente, mas o envio apenas registra no log.

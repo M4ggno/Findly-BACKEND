@@ -47,3 +47,4 @@ description: |-
 
   - `401`: senha incorreta ou conta ainda não verificada.
   - `429`: throttling (20/min).
+examples: ./.resources/3. Login.resources/examples

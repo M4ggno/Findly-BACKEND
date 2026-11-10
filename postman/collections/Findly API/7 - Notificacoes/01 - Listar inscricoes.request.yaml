@@ -1,0 +1,32 @@
+$kind: http-request
+name: 1. Listar inscrições
+order: 1000
+method: GET
+url: '{{base_url}}/api/notifications/subscriptions/'
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{access_token}}'
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('200 OK', () => pm.response.to.have.status(200));
+
+      if (pm.response.code === 200) {
+        const data = pm.response.json();
+        pm.test('Resposta é uma lista', () => pm.expect(data).to.be.an('array'));
+        if (data.length > 0) {
+          pm.environment.set('subscription_id', data[0].id);
+          console.log('subscription_id = ' + data[0].id);
+        }
+        console.log(data.length + ' inscrição(ões) de push.');
+      }
+description: |-
+  Lista as inscrições de push **do usuário autenticado** (sem paginação).
+
+  A resposta é um array; o script guarda o `id` da primeira inscrição em
+  `subscription_id` para a requisição de remoção.
+
+  - `401`: sem token ou token expirado.

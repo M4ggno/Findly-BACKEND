@@ -135,3 +135,23 @@ values:
     enabled: true
     type: default
     description: ID do evento de auditoria; salvo pela listagem de /api/audit/.
+  - key: subscription_id
+    value: ''
+    enabled: true
+    type: default
+    description: ID da inscrição de push; salvo ao listar/registrar na pasta 7.
+  - key: push_endpoint
+    value: 'https://push.example.com/subscriptions/demo-endpoint'
+    enabled: true
+    type: default
+    description: Endpoint de exemplo para testar a inscrição. No app real vem do PushManager.
+  - key: push_p256dh
+    value: 'BExampleP256dhPublicKeyPlaceholderForLocalTestingOnly'
+    enabled: true
+    type: default
+    description: Chave p256dh de exemplo (o navegador gera a real).
+  - key: push_auth
+    value: 'example-auth-secret'
+    enabled: true
+    type: secret
+    description: Segredo auth de exemplo (o navegador gera o real).

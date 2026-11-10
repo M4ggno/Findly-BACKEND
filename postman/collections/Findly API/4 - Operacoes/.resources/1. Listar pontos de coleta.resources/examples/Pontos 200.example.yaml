@@ -1,0 +1,64 @@
+$kind: http-example
+id: a10000000000000000000006
+name: Pontos 200
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "count": 2,
+        "next": null,
+        "previous": null,
+        "results": [
+          {
+            "id": 1,
+            "name": "Portaria do Prédio A",
+            "address": "Av. Central, 100 — térreo",
+            "opening_hours": "Seg a Sex, 08:00–18:00",
+            "capacity": 50,
+            "is_active": true,
+            "operators": [3],
+            "operators_display": [
+              {
+                "id": 3,
+                "full_name": "Operador Demo"
+              }
+            ],
+            "occupancy": 1,
+            "has_capacity": true,
+            "created_at": "2026-11-10T09:00:00-03:00",
+            "updated_at": "2026-11-10T09:00:05-03:00"
+          },
+          {
+            "id": 2,
+            "name": "Biblioteca Central",
+            "address": "Av. Central, 250 — 2º andar",
+            "opening_hours": "Seg a Sáb, 09:00–21:00",
+            "capacity": 20,
+            "is_active": true,
+            "operators": [3],
+            "operators_display": [
+              {
+                "id": 3,
+                "full_name": "Operador Demo"
+              }
+            ],
+            "occupancy": 0,
+            "has_capacity": true,
+            "created_at": "2026-11-10T09:00:00-03:00",
+            "updated_at": "2026-11-10T09:00:00-03:00"
+          }
+        ]
+      }
+description: |-
+  Lista paginada dos pontos de coleta. `occupancy` conta os itens hoje sob
+  custódia do ponto e `has_capacity` indica se ainda cabe item novo
+  (`capacity` nulo significa ilimitado).
+
+  O script da requisição salva o `id` do primeiro ponto em `point_id` para a
+  transferência de custódia.

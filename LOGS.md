@@ -1089,6 +1089,63 @@ fechados.
 ### ➡️ Próximos passos
 1. Seed de demonstração e exemplos de resposta na collection Postman.
 
+## 🗓️ 2026-11-10 — Seed de demonstração e exemplos na collection
+
+### 🎯 Objetivo
+Deixar o front com um ambiente pronto para explorar (contas, pontos, itens em
+estados diferentes) e respostas de exemplo na collection Postman, sem depender
+de montar o fluxo manualmente.
+
+### 🌱 `seed_demo` (idempotente)
+`src/apps/items/management/commands/seed_demo.py`:
+
+| Conta | Papel |
+| :--- | :--- |
+| `demo@findly.local` | comum |
+| `reivindicante@findly.local` | comum |
+| `operador@findly.local` | operador de ponto |
+| `admin@findly.local` | admin (`is_staff`/`is_superuser`) |
+
+- Senha padrão `Findly@2026!` (`--password` troca; `--reset-passwords` reaplica).
+- 2 pontos de coleta e 5 códigos fixos: `DEMOACHADO` (`EM_CUSTODIA`),
+  `DEMOCHAVES` (`REPORTADO`), `DEMOCARTEI` (`AGUARDANDO_RETIRADA`, claim
+  aprovado + QR), `DEMOPERDID` (match de `DEMOACHADO`) e `DEMOALERTA` (sem match).
+- Recusa rodar com `DEBUG=False` sem `--force`.
+- E-mail/push silenciados com `override_settings` durante a carga.
+- Releitura do item antes de aprovar o claim: `transfer_to_point` não muta a
+  instância em memória (bug pego pelos testes).
+- 7 testes em `src/apps/items/tests/test_seed_demo.py` (dados, papéis, trilha de
+  auditoria, idempotência, reset de senha e guarda de `DEBUG`).
+
+### 🧪 Collection Postman
+- Nova pasta **`7 - Notificacoes`** (3 requisições): listar, registrar e remover
+  inscrição de Web Push. Total: **49 requisições em 7 pastas**.
+- Variáveis novas no environment: `subscription_id`, `push_endpoint`,
+  `push_p256dh`, `push_auth`.
+- **10 exemplos de resposta** salvos em `.resources/<request>.resources/examples/`:
+  Login, Meu perfil, Listar achados, Cadastrar achado, Detalhar achado, Listar
+  pontos, Abrir claim, Aprovar claim, Confirmar retirada e Registrar inscrição.
+- Exemplos escritos em YAML direto: `postman collection example update -d` não
+  preservou o JSON com aspas.
+
+### ✅ Validações
+| Verificação | Resultado |
+| :--- | :--- |
+| `pytest src/apps/items/tests/test_seed_demo.py` | 7 passed |
+| `manage.py seed_demo --force` (2×) | cria e depois "nada a criar" |
+| `postman collection lint` | 49 requisições, 0 erros, 0 warnings |
+| `postman environment lint` | 0 erros, 0 warnings |
+
+### 🧠 Decisões desta etapa
+- O seed usa códigos fixos do alfabeto público para ser idempotente e servir de
+  referência nos exemplos do Postman.
+- Os exemplos refletem os serializers reais (sem e-mail do autor, `withdrawal`
+  aninhado, `occupancy`/`has_capacity` do ponto).
+- O QR gerado pelo seed durante a validação foi removido de `media/`.
+
+### ➡️ Próximos passos
+1. Publicar os commits dos blocos 3 e 4.
+
 <!-- ===================================================================== -->
 <!-- NOVAS ENTRADAS DEVEM SER ADICIONADAS ACIMA DESTA LINHA               -->
 <!-- ===================================================================== -->

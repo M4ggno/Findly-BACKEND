@@ -1,0 +1,38 @@
+$kind: http-example
+id: a10000000000000000000004
+name: Achado criado 201
+response:
+  statusCode: 201
+  statusText: Created
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "id": 4,
+        "public_code": "NOVOACHADO",
+        "reported_by": {
+          "id": 1,
+          "full_name": "Usuária Demo"
+        },
+        "title": "Carteira preta encontrada",
+        "description": "Carteira de couro com documentos e cartões.",
+        "category": "carteiras",
+        "category_display": "Carteiras e bolsas",
+        "found_at": "2026-11-09T18:30:00-03:00",
+        "found_location": "Recepção do prédio A",
+        "status": "REPORTADO",
+        "status_display": "Reportado",
+        "photos": [],
+        "created_at": "2026-11-10T09:10:00-03:00",
+        "updated_at": "2026-11-10T09:10:00-03:00"
+      }
+description: |-
+  O achado nasce em `REPORTADO`, com custódia inicial do autor e um evento
+  `CREATED` na mesma transação. O script da requisição salva o `public_code`
+  retornado em `found_code`.
+
+  Se houver alerta de perda compatível (mesma categoria + palavra em comum),
+  o dono é notificado por e-mail/push depois do commit.

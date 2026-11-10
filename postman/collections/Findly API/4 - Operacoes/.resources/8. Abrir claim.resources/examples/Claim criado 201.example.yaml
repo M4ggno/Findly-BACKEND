@@ -1,0 +1,39 @@
+$kind: http-example
+id: a10000000000000000000007
+name: Claim criado 201
+response:
+  statusCode: 201
+  statusText: Created
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "id": 1,
+        "item": {
+          "id": 1,
+          "public_code": "DEMOACHADO",
+          "title": "Carteira de couro preta"
+        },
+        "claimant": {
+          "id": 2,
+          "full_name": "Reivindicante Demo"
+        },
+        "status": "PENDING",
+        "status_display": "Pendente",
+        "message": "É minha carteira; tenho os documentos e o número do RG.",
+        "decision_note": "",
+        "reviewed_by": null,
+        "reviewed_at": null,
+        "withdrawal": null,
+        "created_at": "2026-11-10T10:00:00-03:00",
+        "updated_at": "2026-11-10T10:00:00-03:00"
+      }
+description: |-
+  Reivindicação criada em `PENDING`, aguardando decisão de operador/admin.
+
+  - O autor do achado **não** pode reivindicar o próprio item.
+  - Só existe uma reivindicação pendente por item.
+  - O `id` retornado é salvo em `claim_id` pelo script da requisição.

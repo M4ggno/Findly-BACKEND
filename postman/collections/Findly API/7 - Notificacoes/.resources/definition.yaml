@@ -1,0 +1,11 @@
+$kind: collection
+name: 7. Notificações
+description: |-
+  Inscrições de Web Push do usuário autenticado. O front registra o objeto
+  devolvido por `PushManager.subscribe()` (endpoint + chaves) para receber
+  alertas de match, mudança de custódia e retirada.
+
+  O envio real depende de `NOTIFICATIONS_PUSH_ENABLED=True` e do par VAPID
+  configurado no backend; sem isso, a inscrição é salva mas o canal apenas
+  registra no log.
+order: 7000

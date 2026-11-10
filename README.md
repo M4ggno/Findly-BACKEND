@@ -294,8 +294,8 @@ requisição):
 
 | Caminho | Conteúdo |
 | :--- | :--- |
-| `postman/collections/Findly API/` | 46 requisições em 6 pastas: autenticação (8), usuários (5), itens (12), operações (14), auditoria (3) e manutenção (4) |
-| `postman/environments/Findly Local.environment.yaml` | `base_url`, credenciais de demonstração e variáveis encadeadas (`found_code`, `point_id`, `claim_id`, `withdrawal_token`…) |
+| `postman/collections/Findly API/` | 49 requisições em 7 pastas: autenticação (8), usuários (5), itens (12), operações (14), auditoria (3), manutenção (4) e notificações (3), com 10 exemplos de resposta salvos |
+| `postman/environments/Findly Local.environment.yaml` | `base_url`, credenciais de demonstração e variáveis encadeadas (`found_code`, `point_id`, `claim_id`, `withdrawal_token`, `subscription_id`, `push_*`…) |
 
 **Como usar**
 
@@ -320,11 +320,53 @@ reset aparecem no console (`docker compose logs -f web`).
 | `4 - Operacoes` | Ponto de coleta, transferência, claim, aprovação e retirada por QR |
 | `5 - Auditoria` | Histórico do item e trilha global (admin) |
 | `6 - Manutencao` | Itens/alertas expirados, claims recusadas e eventos automáticos |
+| `7 - Notificacoes` | Inscrições de Web Push do usuário (listar, registrar e remover) |
 
 Os scripts encadeiam os IDs: cadastrar o achado salva `found_code`; criar/listar
 um ponto salva `point_id`; abrir/listar um claim salva `claim_id`; aprovar salva
 `withdrawal_token`, usado na confirmação da retirada. O token é então limpo do
 environment.
+
+Os exemplos salvos (aba **Examples** de cada requisição) mostram a resposta real
+esperada — por exemplo o achado em `REPORTADO`, o claim em `PENDING`/`APPROVED`
+com o QR de 24 h e a retirada concluída em `DEVOLVIDO`.
+
+### 7.1. Dados de demonstração (`seed_demo`)
+
+Para ter contas e itens prontos sem montar o fluxo à mão:
+
+```bash
+# Local (DEBUG=True)
+docker compose exec web python manage.py seed_demo
+
+# Redefinir as senhas das contas demo
+docker compose exec web python manage.py seed_demo --reset-passwords
+```
+
+O comando é **idempotente**: pode rodar quantas vezes quiser — usuários são
+buscados por e-mail, pontos por nome e itens/alertas por código fixo; nada é
+apagado nem tem o status resetado. Em `DEBUG=False` ele se recusa a rodar sem
+`--force` (as senhas demo são conhecidas).
+
+| Conta | E-mail | Papel |
+| :--- | :--- | :--- |
+| Demo | `demo@findly.local` | comum |
+| Reivindicante | `reivindicante@findly.local` | comum |
+| Operador | `operador@findly.local` | operador de ponto |
+| Administrador | `admin@findly.local` | admin (`is_staff`/`is_superuser`) |
+
+Senha padrão: `Findly@2026!` (troque com `--password`). Códigos fixos:
+
+| Código | O que representa |
+| :--- | :--- |
+| `DEMOACHADO` | achado `EM_CUSTODIA` na Portaria do Prédio A |
+| `DEMOCHAVES` | achado `REPORTADO` (ainda com o autor) |
+| `DEMOCARTEI` | achado `AGUARDANDO_RETIRADA`, claim aprovado e QR emitido |
+| `DEMOPERDID` | alerta de perda compatível com `DEMOACHADO` |
+| `DEMOALERTA` | alerta de perda sem match |
+
+O seed cria 2 pontos de coleta e silencia e-mail/push, para não disparar
+notificações durante a carga.
 
 > A pasta `6 - Manutencao` não chama tarefas: notificações e expiração são
 > efeitos do Celery/e-mail. Ela traz as requisições de **verificação** e os

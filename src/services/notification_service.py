@@ -216,11 +216,10 @@ def _deliver_email(message: NotificationMessage) -> None:
 
 
 def _deliver_push(message: NotificationMessage) -> None:
-    """Canal de push.
+    """Entrega Web Push às inscrições ativas dos destinatários.
 
-    Sem um provedor configurado (``NOTIFICATIONS_PUSH_ENABLED=False``), apenas
-    registra a notificação no log. O payload inclui o tipo e os destinatários
-    para facilitar a integração futura (FCM/APNs/Web Push).
+    Sem ``NOTIFICATIONS_PUSH_ENABLED`` ou sem o par VAPID, apenas registra no
+    log. Inscrições expiradas (HTTP 404/410) são desativadas automaticamente.
     """
     if not settings.NOTIFICATIONS_PUSH_ENABLED:
         logger.debug(
@@ -229,11 +228,44 @@ def _deliver_push(message: NotificationMessage) -> None:
             ", ".join(message.recipients),
         )
         return
+
+    # Imports tardios evitam ciclo (o app de notificações depende do serviço).
+    from apps.notifications.models import PushSubscription
+
+    from . import push_service
+
+    subscriptions = list(
+        PushSubscription.objects.filter(
+            user__email__in=message.recipients,
+            is_active=True,
+        ).select_related("user")
+    )
+    if not subscriptions:
+        logger.debug(
+            "Nenhuma inscrição de push ativa para %s.",
+            ", ".join(message.recipients),
+        )
+        return
+
+    payload = {
+        "kind": message.kind,
+        "title": message.subject,
+        "body": message.body,
+    }
+    delivered = 0
+    for subscription in subscriptions:
+        result = push_service.send(subscription.as_subscription_info(), payload)
+        if result == push_service.SENT:
+            subscription.mark_used()
+            delivered += 1
+        elif result == push_service.EXPIRED:
+            PushSubscription.objects.filter(pk=subscription.pk).update(is_active=False)
+
     logger.info(
-        "Push %s para %s: %s",
+        "Push %s: %s/%s inscrição(ões) entregues.",
         message.kind,
-        ", ".join(message.recipients),
-        message.subject,
+        delivered,
+        len(subscriptions),
     )
 
 
@@ -254,8 +286,35 @@ def deliver(message: NotificationMessage) -> None:
 
 
 def dispatch(message: NotificationMessage) -> NotificationMessage:
-    """Agenda a entrega para depois do commit da transação atual."""
-    transaction.on_commit(lambda: deliver(message))
+    """Agenda a entrega para depois do commit da transação atual.
+
+    Com ``NOTIFICATIONS_ASYNC_ENABLED`` a entrega vai para a fila do Celery;
+    se o broker estiver indisponível, cai para o envio síncrono sem quebrar a
+    operação de negócio.
+    """
+
+    def _send() -> None:
+        if settings.NOTIFICATIONS_ASYNC_ENABLED:
+            try:
+                from apps.notifications.tasks import send_notification
+
+                send_notification.delay(
+                    {
+                        "kind": message.kind,
+                        "recipients": list(message.recipients),
+                        "subject": message.subject,
+                        "body": message.body,
+                    }
+                )
+                return
+            except Exception:  # noqa: BLE001 - broker fora não pode derrubar o fluxo
+                logger.exception(
+                    "Fila indisponível; enviando notificação %s de forma síncrona.",
+                    message.kind,
+                )
+        deliver(message)
+
+    transaction.on_commit(_send)
     return message
 
 

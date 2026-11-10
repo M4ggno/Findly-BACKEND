@@ -3,6 +3,7 @@
 Incluído na raiz do projeto **antes** do Django Admin real, de modo que o
 clássico ``/admin/`` caia sempre na isca.
 """
+
 from __future__ import annotations
 
 import re

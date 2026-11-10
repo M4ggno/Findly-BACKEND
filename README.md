@@ -190,6 +190,20 @@ O ambiente é inteiramente orquestrado via **Docker** e **Docker Compose**, gara
    docker compose exec web python manage.py test
    ```
 
+### Healthchecks
+
+Rotas públicas (sem JWT e sem throttle) usadas pelo Docker e pelo balanceador:
+
+| Rota | Tipo | O que verifica |
+| :--- | :--- | :--- |
+| `GET /health/` | liveness | Apenas se o processo web está vivo; não toca em banco/cache |
+| `GET /health/ready/` | readiness | Banco de dados e cache; devolve `503` com o detalhe quando algo falha |
+
+```bash
+curl -fsS http://localhost:8000/health/
+curl -fsS http://localhost:8000/health/ready/
+```
+
 ---
 
 ## 📐 6. Padrões de Código e Convenções da Equipe
@@ -197,6 +211,27 @@ O ambiente é inteiramente orquestrado via **Docker** e **Docker Compose**, gara
 1. **Fat Services, Skinny Views:** As `Views` devem apenas receber a requisição, validar o `Serializer` e chamar a camada de **Regras de Negócio / Serviços**.
 2. **Transações Atômicas:** Toda operação que envolva troca de **Custódia** ou **Entrega/Retirada** deve ser encapsulada em `@transaction.atomic`.
 3. **Auditoria Inegociável:** Nenhuma alteração de `Status` ou `Custódia` pode ocorrer sem registrar um evento correspondente no módulo de **Histórico / Auditoria**.
+
+### Integração contínua
+
+O workflow `.github/workflows/ci.yml` roda em todo push para `main` e em pull
+requests, com dois jobs:
+
+| Job | Verificações |
+| :--- | :--- |
+| `lint` | `ruff check src` e `black --check src` |
+| `test` | PostgreSQL 16 + Redis 7, `manage.py check`, `makemigrations --check --dry-run`, `spectacular --validate --fail-on-warn` e `pytest` |
+
+Para reproduzir localmente:
+
+```bash
+ruff check src
+black --check src
+python manage.py check
+python manage.py makemigrations --check --dry-run
+python manage.py spectacular --validate --fail-on-warn
+pytest
+```
 
 ---
 
@@ -465,14 +500,41 @@ quando a **retirada é liberada** e quando a **entrega é concluída**.
 | :--- | :--- | :--- |
 | `EMAIL_BACKEND` | console | Backend de e-mail do Django |
 | `DEFAULT_FROM_EMAIL` | `Findly <no-reply@findly.local>` | Remetente |
-| `NOTIFICATIONS_PUSH_ENABLED` | `false` | Habilita o canal de push (sem provedor, apenas loga) |
+| `NOTIFICATIONS_ASYNC_ENABLED` | `not DEBUG` | Envia pelo worker do Celery (há fallback síncrono se o broker falhar) |
+| `NOTIFICATIONS_PUSH_ENABLED` | `false` | Habilita o canal de Web Push |
+| `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | vazio | Par VAPID do Web Push (obrigatório com o push ligado) |
+| `VAPID_ADMIN_EMAIL` | `admin@findly.local` | Contato exigido no claim VAPID |
 | `MATCH_WINDOW_DAYS` | `30` | Janela máxima entre perda e achado |
 | `MATCH_NOTIFICATION_LIMIT` | `5` | Máximo de notificações por evento |
 
 - O envio é agendado com `transaction.on_commit`: rollback da operação não
   dispara e-mail/push.
+- Com `NOTIFICATIONS_ASYNC_ENABLED=True` a mensagem vai para a task
+  `notifications.send` no worker Celery; se o broker estiver fora, o envio cai
+  para o processo web em vez de quebrar a operação.
 - Falhas de SMTP/push são logadas e **não** interrompem a regra de negócio.
 - Em desenvolvimento, `EMAIL_BACKEND` de console imprime a mensagem no terminal.
+
+### 11.4. Web Push
+
+O app `apps.notifications` guarda uma inscrição por navegador/dispositivo
+(`PushSubscription`) e o front a registra depois de obter a permissão do
+usuário (`PushManager.subscribe()`):
+
+| Rota | Descrição |
+| :--- | :--- |
+| `GET /api/notifications/subscriptions/` | Lista as inscrições do usuário autenticado |
+| `POST /api/notifications/subscriptions/` | Cria/atualiza a inscrição (`endpoint` + `keys.p256dh` + `keys.auth`) |
+| `DELETE /api/notifications/subscriptions/{id}/` | Remove uma inscrição do próprio usuário |
+
+- O mesmo `endpoint` reenviado é atualizado, inclusive quando outro usuário
+  entra no mesmo navegador.
+- O provedor de push responde `404`/`410` quando a inscrição expirou; ela é
+  desativada automaticamente (`is_active=False`).
+- Sem o par VAPID completo, `services/push_service.py` devolve `skipped` e
+  registra no log — o restante do fluxo não é afetado.
+- O token do QR de retirada **não** é enviado por e-mail nem por push; o
+  reivindicante o obtém autenticado na própria conta.
 
 ---
 

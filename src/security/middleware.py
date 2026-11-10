@@ -4,6 +4,7 @@ Executa cedo na pilha para barrar requisições de IPs já bloqueados antes de
 qualquer processamento pesado. Para IPs confiáveis/privados (por padrão), nunca
 bloqueia — evitando auto-bloqueio durante o desenvolvimento.
 """
+
 from __future__ import annotations
 
 import logging

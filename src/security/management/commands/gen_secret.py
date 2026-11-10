@@ -5,6 +5,7 @@ Uso::
     python manage.py gen_secret
     make gen-secret
 """
+
 from __future__ import annotations
 
 import secrets

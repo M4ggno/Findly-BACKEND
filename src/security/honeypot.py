@@ -16,13 +16,14 @@ Onde os eventos são gravados
 O módulo **degrada com segurança**: se o Redis estiver indisponível, o acesso
 continua sendo registrado no log e a resposta HTTP nunca quebra.
 """
+
 from __future__ import annotations
 
 import hashlib
 import json
 import logging
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from ipaddress import ip_address
 
 from django.conf import settings
@@ -181,7 +182,7 @@ def record_attempt(
     """Registra uma tentativa de acesso indevido e aplica o bloqueio se preciso."""
     ip = get_client_ip(request)
     event: dict = {
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
         "ip": ip,
         "method": request.method,
         "path": request.get_full_path(),
@@ -203,9 +204,11 @@ def record_attempt(
         event["path"],
         hits,
         event["user_agent"],
-        f" username={event['attempted_username']!r}"
-        if event.get("attempted_username")
-        else "",
+        (
+            f" username={event['attempted_username']!r}"
+            if event.get("attempted_username")
+            else ""
+        ),
     )
 
     _store_event(event)
@@ -317,9 +320,7 @@ def admin_honeypot_view(request: HttpRequest) -> HttpResponse:
         )
 
     record_attempt(request, kind="admin_access")
-    return HttpResponse(
-        _decoy_login_page(), content_type="text/html; charset=utf-8"
-    )
+    return HttpResponse(_decoy_login_page(), content_type="text/html; charset=utf-8")
 
 
 def scanner_honeypot_view(request: HttpRequest, path: str = "") -> HttpResponse:

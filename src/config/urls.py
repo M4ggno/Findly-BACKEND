@@ -1,8 +1,7 @@
 """Roteamento de URLs raiz do Findly Backend.
 
-As rotas de cada app de domínio (``apps.*``) serão incluídas aqui conforme forem
-implementadas (ver TODO abaixo). Por enquanto expõe o Django Admin (em caminho
-secreto), o honeypot em ``/admin/`` e a documentação OpenAPI/Swagger da API.
+Expõe o Django Admin (em caminho secreto), o honeypot em ``/admin/``, a
+documentação OpenAPI/Swagger, os healthchecks e as rotas de cada app de domínio.
 """
 
 from __future__ import annotations
@@ -17,7 +16,12 @@ from drf_spectacular.views import (
     SpectacularSwaggerView,
 )
 
+from .health import liveness, readiness
+
 urlpatterns = [
+    # --- Healthchecks (Docker / balanceador) --------------------------------
+    path("health/", liveness, name="health"),
+    path("health/ready/", readiness, name="health-ready"),
     # --- Honeypot -----------------------------------------------------------
     # Deve vir ANTES do admin real: transforma o clássico /admin/ (e iscas
     # comuns) em armadilha que registra quem tenta acessá-lo.
@@ -47,9 +51,8 @@ urlpatterns = [
     path("api/operations/", include("apps.operations.urls")),
     # --- Auditoria (histórico + consulta administrativa) --------------------
     path("api/", include("apps.audit.urls")),
-    #
-    # --- Apps de domínio ----------------------------------------------------
-    # TODO(apps): demais rotas de domínio.
+    # --- Notificações (inscrições de push) ----------------------------------
+    path("api/notifications/", include("apps.notifications.urls")),
 ]
 
 # Servir arquivos de mídia em desenvolvimento.

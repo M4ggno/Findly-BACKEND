@@ -3,6 +3,7 @@
 Não dependem de Redis: o honeypot degrada com segurança quando o cache está
 indisponível, então os testes validam as respostas HTTP e o roteamento.
 """
+
 from __future__ import annotations
 
 import pytest

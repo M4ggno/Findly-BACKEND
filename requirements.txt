@@ -23,6 +23,9 @@ django-environ==0.14.0
 Pillow==12.3.0
 qrcode[pil]==8.2
 
+# --- Notificações Web Push (VAPID) ------------------------------------------
+pywebpush==2.5.0
+
 # --- Auditoria / histórico --------------------------------------------------
 django-simple-history==3.13.0
 

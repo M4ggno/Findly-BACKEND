@@ -86,13 +86,14 @@ INFRA_APPS = [
     "security",
 ]
 
-# Apps de domínio do Findly. Os demais serão habilitados nas próximas etapas.
+# Apps de domínio do Findly.
 LOCAL_APPS = [
     "apps.users",
     "apps.authentication",
     "apps.items",
     "apps.operations",
     "apps.audit",
+    "apps.notifications",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + INFRA_APPS + LOCAL_APPS
@@ -366,6 +367,13 @@ PASSWORD_RESET_URL = env(
 # --- Notificações (e-mail/push e matching) --------------------------------
 # Sem provedor de push configurado, o canal apenas registra no log.
 NOTIFICATIONS_PUSH_ENABLED = env.bool("NOTIFICATIONS_PUSH_ENABLED", default=False)
+# Envia as notificações pelo worker do Celery. Em desenvolvimento (DEBUG=True)
+# o padrão é síncrono para não exigir o broker; em produção, assíncrono.
+NOTIFICATIONS_ASYNC_ENABLED = env.bool("NOTIFICATIONS_ASYNC_ENABLED", default=not DEBUG)
+# Par de chaves VAPID do Web Push (gere com `vapid --applicationServerKey`).
+VAPID_PUBLIC_KEY = env("VAPID_PUBLIC_KEY", default="")
+VAPID_PRIVATE_KEY = env("VAPID_PRIVATE_KEY", default="")
+VAPID_ADMIN_EMAIL = env("VAPID_ADMIN_EMAIL", default="admin@findly.local")
 # Janela máxima entre a perda e o achado para sugerir um match.
 MATCH_WINDOW_DAYS = env.int("MATCH_WINDOW_DAYS", default=30)
 # Quantos alertas/achados notificar por evento (evita rajadas de e-mail).

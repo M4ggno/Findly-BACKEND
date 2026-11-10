@@ -993,6 +993,66 @@ pasta e descrição do fluxo completo na definição da collection. O environmen
 1. Revisar envio de notificações via Celery quando o broker estiver disponível.
 2. Avaliar exemplos salvos (`.resources/*.resources/examples`) para o front.
 
+## 🗓️ 2026-11-10 — Healthchecks, CI e notificações push assíncronas
+
+### 🎯 Objetivo
+Fechar dois pré-requisitos de produção que não dependiam do front: monitorar a
+saúde da aplicação (Docker/balanceador) e tirar o envio de notificações do
+processo web, com suporte real a Web Push.
+
+### 🧩 Healthchecks
+| Rota | Tipo | Comportamento |
+| :--- | :--- | :--- |
+| `GET /health/` | liveness | Responde `{"status": "ok"}` sem tocar em banco/cache |
+| `GET /health/ready/` | readiness | Testa banco + cache; `503` com o detalhe de quem falhou |
+
+Views Django simples (sem JWT e sem throttle do DRF), em `src/config/health.py`,
+com testes em `src/config/tests/test_health.py`.
+
+### 🔔 Notificações + push
+- Novo app `apps.notifications` com `PushSubscription` (endpoint único por
+  navegador, chaves `p256dh`/`auth`, ativação e último uso).
+- Rotas `GET/POST /api/notifications/subscriptions/` e
+  `DELETE /api/notifications/subscriptions/{id}/` (só as do próprio usuário).
+- `services/push_service.py` entrega Web Push com VAPID via `pywebpush` e trata
+  inscrição expirada (`404/410` desativa) e falha transitória (mantém ativa).
+- `notification_service._deliver_push` passou a enviar de verdade; `dispatch`
+  usa a task `notifications.send` quando `NOTIFICATIONS_ASYNC_ENABLED=True`,
+  com fallback síncrono se o broker estiver fora.
+- Novas variáveis: `NOTIFICATIONS_ASYNC_ENABLED`, `VAPID_PUBLIC_KEY`,
+  `VAPID_PRIVATE_KEY`, `VAPID_ADMIN_EMAIL`; `pywebpush==2.5.0` em
+  `requirements.txt`.
+
+### ⚙️ CI (GitHub Actions)
+`.github/workflows/ci.yml` com dois jobs:
+- **lint**: `ruff check src` e `black --check src`;
+- **testes e schema**: Postgres 16 + Redis 7, `manage.py check`,
+  `makemigrations --check --dry-run`, `spectacular --validate --fail-on-warn`
+  e `pytest`.
+O drift antigo de `ruff`/`black` em `src/security/` foi corrigido para o CI
+nascer verde.
+
+### ✅ Validações
+| Verificação | Resultado |
+| :--- | :--- |
+| `pytest` completo | **270 passed** |
+| `ruff check src` | limpo |
+| `black --check src` | 124 arquivos sem alteração |
+| `manage.py check` | sem issues |
+| `makemigrations --check --dry-run` | sem drift |
+| `spectacular --validate --fail-on-warn` | 0 warnings, 0 errors |
+
+### 🧠 Decisões desta etapa
+- `NOTIFICATIONS_ASYNC_ENABLED` tem default `not DEBUG`: síncrono em
+  desenvolvimento/testes, assíncrono em produção.
+- Push é opcional: sem VAPID completo o serviço devolve `skipped` e registra no
+  log, sem quebrar a operação de negócio.
+- O CI usa PostgreSQL (não SQLite) para se aproximar do ambiente real.
+
+### ➡️ Próximos passos
+1. Compose de produção (gunicorn, collectstatic, nginx, `DEBUG=False`).
+2. Seed de demonstração e exemplos de resposta na collection Postman.
+
 <!-- ===================================================================== -->
 <!-- NOVAS ENTRADAS DEVEM SER ADICIONADAS ACIMA DESTA LINHA               -->
 <!-- ===================================================================== -->

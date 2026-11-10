@@ -81,6 +81,20 @@ def transition_found_item(
     if target_status not in ALLOWED_TRANSITIONS.get(item.status, frozenset()):
         raise InvalidStatusTransition(item.status, target_status)
 
+    previous_status = item.status
     item.status = target_status
     item.save(update_fields=["status", "updated_at"])
+
+    # Import local evita carregar o app de auditoria durante o boot e mantém a
+    # dependência em uma única direção (audit -> items no modelo).
+    from apps.audit.models import AuditAction
+    from apps.audit.services import record_event
+
+    record_event(
+        item=item,
+        action=AuditAction.STATUS_CHANGED,
+        user=user,
+        previous_status=previous_status,
+        new_status=target_status,
+    )
     return item

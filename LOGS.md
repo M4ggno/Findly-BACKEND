@@ -713,6 +713,63 @@ grava `status` diretamente.
 2. App `operations`: custódia, pontos de coleta, claims e retirada via QR.
 3. Serviços restantes (QR, notificações) e coleção Postman de itens.
 
+## 🗓️ 2026-11-09 — App `audit`: trilha imutável e histórico de itens
+
+### 🎯 Objetivo
+Garantir rastreabilidade inegociável: toda criação de item e toda mudança de
+status passa a gravar um evento no mesmo bloco transacional da operação.
+
+### 📁 Estrutura criada
+| Arquivo | Conteúdo |
+| :--- | :--- |
+| `src/apps/audit/models.py` | `AuditEvent` imutável + `AuditAction` |
+| `src/apps/audit/services.py` | `record_event` (usado por items) |
+| `src/apps/audit/permissions.py` | Histórico: autor, operador ou admin |
+| `src/apps/audit/serializers.py` | Eventos somente leitura |
+| `src/apps/audit/filters.py` | Item, ação, período e busca |
+| `src/apps/audit/views.py` + `urls.py` | Histórico aninhado + consulta admin |
+| `src/apps/audit/admin.py` | Admin somente leitura |
+| `src/apps/audit/migrations/0001_initial.py` | Migração inicial |
+| `src/apps/audit/tests/` | 25 testes |
+
+### 🔌 Endpoints
+- `GET /api/items/found/{code}/history/` — autor, operador ou admin (sem
+  paginação; ordem do mais recente para o mais antigo).
+- `GET /api/audit/` e `GET /api/audit/{id}/` — apenas admin, com filtros por
+  `item`, `action`, `date_from`, `date_to`, busca e ordenação.
+- `POST/PATCH/DELETE` nesses recursos retornam `405`.
+
+### 🔒 Imutabilidade e atomicidade
+- `AuditEvent.save()` em registro existente e `delete()` levantam `ValueError`.
+- Admin sem permissão de criação, edição ou exclusão.
+- `AuditAction`: `CREATED` e `STATUS_CHANGED` em uso; `CUSTODY_TRANSFERRED`,
+  `CLAIM_APPROVED`, `CLAIM_REJECTED` e `WITHDRAWAL_CONFIRMED` reservadas para
+  `operations`.
+- `transition_found_item` grava `STATUS_CHANGED` antes de retornar; o
+  `perform_create` de itens grava `CREATED` sob `@transaction.atomic`.
+- Falha simulada na auditoria reverte a transição e o cadastro (testado).
+
+### ✅ Validações
+| Verificação | Resultado |
+| :--- | :--- |
+| `pytest src/apps/audit` | **25 passed** ✅ |
+| `pytest` (suíte completa) | **145 passed** ✅ |
+| `manage.py check` | sem issues ✅ |
+| `makemigrations --check --dry-run` | sem drift ✅ |
+| `spectacular --validate` | 0 erros / 0 warnings ✅ |
+| `ruff` + `black` (arquivos novos) | limpos ✅ |
+
+### 📌 Decisões desta etapa
+- `responsible` anulável para permitir ações automáticas futuras.
+- FK de ponto de coleta adiada para `operations` (evita dependência circular).
+- Histórico do item sem paginação (volume pequeno por item).
+- Import local de `apps.audit` em `items` mantém a dependência em uma direção.
+
+### ⏭️ Próximos passos
+1. App `operations`: pontos de coleta, custódia, claims e retirada via QR.
+2. Serviços de QR (24 h, uso único) e notificações.
+3. Coleção Postman de itens/auditoria.
+
 <!-- ===================================================================== -->
 <!-- NOVAS ENTRADAS DEVEM SER ADICIONADAS ACIMA DESTA LINHA               -->
 <!-- ===================================================================== -->

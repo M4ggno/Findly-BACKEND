@@ -14,6 +14,7 @@ Rotas montadas em ``/api/items/`` (ver ``urls.py``):
 
 from __future__ import annotations
 
+from django.db import transaction
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema, extend_schema_view
@@ -121,8 +122,19 @@ class FoundItemViewSet(
             return [IsAuthenticated(), CanManageItemPhotos()]
         return [IsAuthenticated()]
 
+    @transaction.atomic
     def perform_create(self, serializer):
-        serializer.save(reported_by=self.request.user)
+        item = serializer.save(reported_by=self.request.user)
+
+        from apps.audit.models import AuditAction
+        from apps.audit.services import record_event
+
+        record_event(
+            item=item,
+            action=AuditAction.CREATED,
+            user=self.request.user,
+            new_status=item.status,
+        )
 
     @extend_schema(
         tags=["items"],

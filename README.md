@@ -306,3 +306,44 @@ O autor é exposto apenas como `{"id", "full_name"}` — e-mail e telefone nunca
 aparecem nas respostas de itens. A retirada será negociada pelo fluxo de
 *custódia/claim* do app `operations` (próxima etapa).
 
+---
+
+## 🧾 9. Auditoria e Histórico
+
+Toda criação de item e **toda** mudança de status/custódia gera um evento na
+trilha de auditoria, **na mesma transação** da operação original. Se o registro
+do evento falhar, a operação inteira é revertida (README, seção 3.5).
+
+### 9.1. Modelo imutável — `AuditEvent`
+
+| Campo | Descrição |
+| :--- | :--- |
+| `item` | Item auditado (`PROTECT`; o histórico nunca perde a referência) |
+| `action` | `CREATED`, `STATUS_CHANGED`, `CUSTODY_TRANSFERRED`, `CLAIM_APPROVED`, `CLAIM_REJECTED`, `WITHDRAWAL_CONFIRMED` |
+| `previous_status` / `new_status` | Transição registrada (vazio na criação) |
+| `responsible` | Quem executou (`null` em ações automáticas, como expiração) |
+| `metadata` | Contexto adicional (ponto de coleta, claim, QR etc.) |
+| `created_at` | Timestamp do evento |
+
+- `save()` em um evento existente e `delete()` levantam `ValueError`.
+- O admin é **somente leitura**: sem criação, edição ou exclusão.
+- Ordenação padrão: mais recente primeiro.
+
+### 9.2. Rotas
+
+| Método | Rota | Quem pode | Descrição |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/items/found/{code}/history/` | autor, operador, admin | Histórico completo do item (sem paginação) |
+| `GET` | `/api/audit/` | admin | Trilha global, paginada |
+| `GET` | `/api/audit/{id}/` | admin | Detalhe de um evento |
+
+**Filtros de `/api/audit/`:** `item` (código público), `action`, `date_from`,
+`date_to`, `search` (código/título do item e nome do responsável) e `ordering`
+(`created_at`, `action`).
+
+### 9.3. Eventos automáticos
+
+Criação: `CREATED` (`REPORTADO`). Transições: `STATUS_CHANGED` com
+`previous_status` e `new_status` preenchidos. As demais ações ficam reservadas
+para o app `operations` (custódia, claims e retirada via QR).
+

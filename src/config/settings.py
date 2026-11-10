@@ -363,6 +363,14 @@ PASSWORD_RESET_URL = env(
     "PASSWORD_RESET_URL", default=f"{FRONTEND_URL}/redefinir-senha"
 )
 
+# --- Notificações (e-mail/push e matching) --------------------------------
+# Sem provedor de push configurado, o canal apenas registra no log.
+NOTIFICATIONS_PUSH_ENABLED = env.bool("NOTIFICATIONS_PUSH_ENABLED", default=False)
+# Janela máxima entre a perda e o achado para sugerir um match.
+MATCH_WINDOW_DAYS = env.int("MATCH_WINDOW_DAYS", default=30)
+# Quantos alertas/achados notificar por evento (evita rajadas de e-mail).
+MATCH_NOTIFICATION_LIMIT = env.int("MATCH_NOTIFICATION_LIMIT", default=5)
+
 # ===========================================================================
 # 13. Arquivos estáticos e mídia
 # ===========================================================================

@@ -1,0 +1,13 @@
+Olá!
+
+A entrega do item abaixo foi concluída.
+
+Item: {{ item.title }} ({{ item.public_code }})
+Retirada confirmada em: {{ confirmed_at }}
+{% if point %}Local: {{ point.name }} ({{ point.address }})
+{% endif %}
+O ciclo do item foi encerrado como DEVOLVIDO e o histórico completo fica
+disponível em {{ frontend_url }}.
+
+—
+Findly · achados e perdidos

@@ -1,0 +1,20 @@
+Olá, {{ lost_report.owner.full_name|default:lost_report.owner.email }}!
+
+Um item encontrado pode ser o que você perdeu.
+
+Alerta: {{ lost_report.title }} ({{ lost_report.public_code }})
+Categoria: {{ lost_report.get_category_display }}
+Perdido em: {{ lost_report.lost_at }}
+Local da perda: {{ lost_report.lost_location }}
+
+Item encontrado: {{ found_item.title }} ({{ found_item.public_code }})
+Encontrado em: {{ found_item.found_at }}
+Local do achado: {{ found_item.found_location }}
+
+Acesse {{ frontend_url }} e abra uma reivindicação informando características
+que comprovem a propriedade. A equipe do ponto de coleta avaliará o pedido.
+
+Se não foi você, ignore esta mensagem.
+
+—
+Findly · achados e perdidos

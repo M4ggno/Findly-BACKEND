@@ -1,0 +1,13 @@
+Olá, {{ lost_report.owner.full_name|default:lost_report.owner.email }}!
+
+Encontramos {{ count }} item(ns) encontrado(s) que podem corresponder ao seu
+alerta "{{ lost_report.title }}" ({{ lost_report.public_code }}).
+
+{% for item in found_items %}- {{ item.title }} ({{ item.public_code }}) — encontrado em {{ item.found_at }} em {{ item.found_location }}
+{% endfor %}
+Acesse {{ frontend_url }} para abrir uma reivindicação e comprovar a propriedade.
+
+Se nenhum item for seu, ignore esta mensagem.
+
+—
+Findly · achados e perdidos

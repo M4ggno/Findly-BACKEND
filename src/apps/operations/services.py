@@ -25,6 +25,7 @@ from apps.audit.services import record_event
 from apps.items.models import FoundItem, ItemStatus
 from apps.items.services import transition_found_item
 from apps.users.models import User
+from services import notification_service
 from services.qrcode_service import build_qr_png, extract_withdrawal_token
 
 from .models import (
@@ -177,6 +178,7 @@ def transfer_to_point(
             "note": note,
         },
     )
+    notification_service.notify_custody_changed(item, point, actor=user)
     return record
 
 
@@ -300,13 +302,14 @@ def approve_claim(claim: Claim, *, user: User, decision_note: str = "") -> Claim
         status=item.status,
     )
 
+    point = current_collection_point(item)
     record_event(
         item=item,
         action=AuditAction.CLAIM_APPROVED,
         user=user,
         previous_status=previous_status,
         new_status=item.status,
-        collection_point=current_collection_point(item),
+        collection_point=point,
         metadata={
             "claim": claim.pk,
             "claimant": claim.claimant_id,
@@ -314,6 +317,7 @@ def approve_claim(claim: Claim, *, user: User, decision_note: str = "") -> Claim
             "decision_note": decision_note,
         },
     )
+    notification_service.notify_awaiting_pickup(claim, authority, point=point)
     return claim
 
 
@@ -439,6 +443,7 @@ def confirm_withdrawal(raw_token: str, *, user: User) -> WithdrawalAuthority:
             "withdrawal": authority.pk,
         },
     )
+    notification_service.notify_withdrawal_confirmed(claim, authority, point=point)
     return authority
 
 

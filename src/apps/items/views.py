@@ -27,6 +27,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from apps.users.permissions import IsOperatorOrAdmin
+from services import notification_service
 
 from .filters import FoundItemFilter, LostReportFilter
 from .models import FoundItem, ItemPhoto, LostReport, LostReportStatus
@@ -139,6 +140,9 @@ class FoundItemViewSet(
         # A posse física começa com quem cadastrou o achado; o evento CREATED já
         # cobre a criação (não geramos um segundo evento de custódia).
         open_initial_custody(item, self.request.user)
+
+        # Avisa donos de alertas de perda compatíveis (agendado pós-commit).
+        notification_service.notify_found_item_matches(item)
 
     @extend_schema(
         tags=["items"],
@@ -271,8 +275,11 @@ class LostReportViewSet(
             return [IsAuthenticated(), CanEditLostReport()]
         return [IsAuthenticated()]
 
+    @transaction.atomic
     def perform_create(self, serializer):
-        serializer.save(owner=self.request.user)
+        report = serializer.save(owner=self.request.user)
+        # Avisa o dono do alerta se já existirem achados compatíveis.
+        notification_service.notify_lost_report_matches(report)
 
     @extend_schema(
         tags=["items"],

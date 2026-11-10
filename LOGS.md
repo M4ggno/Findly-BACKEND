@@ -840,6 +840,54 @@ Code temporário e de uso único — tudo auditado na mesma transação.
 2. Tarefas agendadas: expiração de itens e limpeza de QR vencido.
 3. Coleção Postman de itens, operações e auditoria.
 
+## 🗓️ 2026-11-09 — Serviço de notificações (match, custódia e retirada)
+
+### 🎯 Objetivo
+Avisar por e-mail/push os envolvidos no ciclo do item: donos de alertas de perda
+quando surge um achado compatível, autor do achado nas trocas de custódia,
+reivindicante na liberação da retirada e ambos na entrega final.
+
+### 📁 Estrutura criada
+| Arquivo | Conteúdo |
+| :--- | :--- |
+| `src/services/notification_service.py` | Matching, mensagens, canais e agendamento pós-commit |
+| `src/apps/items/templates/items/notifications/` | `match.txt`, `lost_report_matches.txt` |
+| `src/apps/operations/templates/operations/notifications/` | `custody.txt`, `awaiting_pickup.txt`, `withdrawal_confirmed.txt` |
+| `src/apps/items/tests/test_notifications.py` | 12 testes (match, janela, falha de SMTP) |
+| `src/apps/operations/tests/test_notifications.py` | 4 testes (custódia, aprovação, retirada) |
+
+### 🔁 Regras implementadas
+- **Match** exige mesma categoria, achado posterior à perda (janela de 30 dias)
+  e ao menos uma palavra significativa em comum (sem acentos/stopwords, 4+ letras).
+- Notificações nos dois sentidos: ao cadastrar o achado e ao abrir o alerta.
+- Alertas cancelados, achados terminais e itens encontrados antes da perda são
+  ignorados; até 5 notificações por evento (`MATCH_NOTIFICATION_LIMIT`).
+- Transferência avisa o autor do achado; aprovação avisa o reivindicante;
+  retirada avisa reivindicante + autor.
+- Envio agendado com `transaction.on_commit`; rollback não dispara mensagem.
+- Falhas de SMTP/push são logadas e não quebram a operação.
+- Canal de push opcional (`NOTIFICATIONS_PUSH_ENABLED`); sem provedor, loga.
+
+### ✅ Validações
+| Verificação | Resultado |
+| :--- | :--- |
+| `pytest src/apps/items/tests/test_notifications.py src/apps/operations/tests/test_notifications.py` | **16 passed** ✅ |
+| `pytest` (suíte completa) | **238 passed** ✅ |
+| `manage.py check` | sem issues ✅ |
+| `makemigrations --check --dry-run` | sem drift ✅ |
+| `spectacular --validate` | 0 erros / 0 warnings ✅ |
+| `ruff` + `black` (arquivos alterados) | limpos ✅ |
+
+### 📌 Decisões desta etapa
+- Notificação é efeito colateral: nunca participa da transação de negócio.
+- O token do QR **não** vai no e-mail; a mensagem aponta para a conta autenticada.
+- Push fica atrás de flag até a integração com um provedor (FCM/APNs/Web Push).
+
+### ⏭️ Próximos passos
+1. Tarefas agendadas: expiração de itens e limpeza de QR vencido.
+2. Coleção Postman de itens, operações e auditoria.
+3. Revisar envio de notificações via Celery quando o broker estiver disponível.
+
 <!-- ===================================================================== -->
 <!-- NOVAS ENTRADAS DEVEM SER ADICIONADAS ACIMA DESTA LINHA               -->
 <!-- ===================================================================== -->

@@ -1,0 +1,15 @@
+Olá, {{ claim.claimant.full_name|default:claim.claimant.email }}!
+
+Sua reivindicação foi aprovada e o item está pronto para retirada.
+
+Item: {{ item.title }} ({{ item.public_code }})
+Retirada em: {{ point_line }}
+Apresente o QR Code de retirada disponível na sua conta.
+
+O QR Code é de uso único e expira em {{ expires_at }}. Depois desse prazo,
+será necessário solicitar uma nova autorização à equipe do ponto de coleta.
+
+Acesse {{ frontend_url }} para consultar a autorização.
+
+—
+Findly · achados e perdidos

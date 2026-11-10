@@ -26,6 +26,8 @@ def _hermetic_settings(settings, tmp_path):
         }
     }
     settings.MEDIA_ROOT = tmp_path / "media"
+    settings.EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
+    settings.NOTIFICATIONS_PUSH_ENABLED = False
 
 
 @pytest.fixture

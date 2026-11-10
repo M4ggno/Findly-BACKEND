@@ -410,3 +410,47 @@ pendentes do mesmo item.
 - Token inválido, expirado, já utilizado ou de claim não aprovado retorna `400`.
 - `metadata` do evento guarda `claim`, `claimant` e `withdrawal`.
 
+---
+
+## 🔔 11. Notificações (e-mail e push)
+
+O serviço transversal `src/services/notification_service.py` dispara alertas
+quando há **match** entre perdido e achado, quando o item **muda de custódia**,
+quando a **retirada é liberada** e quando a **entrega é concluída**.
+
+### 11.1. Eventos e destinatários
+
+| Evento | Destinatário | Conteúdo |
+| :--- | :--- | :--- |
+| Achado compatível com alerta | dono do alerta de perda | item, local, data e link para reivindicar |
+| Alerta aberto com achados existentes | dono do alerta | lista de achados compatíveis |
+| Transferência para ponto | autor do achado | novo ponto, endereço e horário |
+| Claim aprovado | reivindicante | ponto de retirada, validade e QR disponível na conta |
+| Retirada confirmada | reivindicante + autor do achado | entrega concluída e histórico |
+
+### 11.2. Regras de match
+
+- Mesma **categoria** em perdido e achado.
+- O achado deve ocorrer **depois** da perda e dentro de `MATCH_WINDOW_DAYS`
+  (padrão: 30 dias).
+- Ao menos uma **palavra significativa** em comum entre título/descrição
+  (sem acentos, sem stopwords e com 4+ caracteres).
+- Alertas cancelados e achados terminais (`DEVOLVIDO`, `EXPIRADO`,
+  `ENCAMINHADO`) são ignorados.
+- `MATCH_NOTIFICATION_LIMIT` (padrão: 5) limita as notificações por evento.
+
+### 11.3. Configuração
+
+| Variável | Padrão | Descrição |
+| :--- | :--- | :--- |
+| `EMAIL_BACKEND` | console | Backend de e-mail do Django |
+| `DEFAULT_FROM_EMAIL` | `Findly <no-reply@findly.local>` | Remetente |
+| `NOTIFICATIONS_PUSH_ENABLED` | `false` | Habilita o canal de push (sem provedor, apenas loga) |
+| `MATCH_WINDOW_DAYS` | `30` | Janela máxima entre perda e achado |
+| `MATCH_NOTIFICATION_LIMIT` | `5` | Máximo de notificações por evento |
+
+- O envio é agendado com `transaction.on_commit`: rollback da operação não
+  dispara e-mail/push.
+- Falhas de SMTP/push são logadas e **não** interrompem a regra de negócio.
+- Em desenvolvimento, `EMAIL_BACKEND` de console imprime a mensagem no terminal.
+

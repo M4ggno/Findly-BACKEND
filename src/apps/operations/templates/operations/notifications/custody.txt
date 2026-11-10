@@ -1,0 +1,13 @@
+Olá, {{ item.reported_by.full_name|default:item.reported_by.email }}!
+
+O item que você cadastrou mudou de custódia.
+
+Item: {{ item.title }} ({{ item.public_code }})
+Novo responsável: {{ point.name }} ({{ point.address }})
+{% if point.opening_hours %}Horário de funcionamento: {{ point.opening_hours }}
+{% endif %}{% if actor %}Registrado por: {{ actor.full_name|default:actor.email }}
+{% endif %}
+Acompanhe o histórico em {{ frontend_url }}.
+
+—
+Findly · achados e perdidos

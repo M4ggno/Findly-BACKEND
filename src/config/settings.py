@@ -371,6 +371,15 @@ MATCH_WINDOW_DAYS = env.int("MATCH_WINDOW_DAYS", default=30)
 # Quantos alertas/achados notificar por evento (evita rajadas de e-mail).
 MATCH_NOTIFICATION_LIMIT = env.int("MATCH_NOTIFICATION_LIMIT", default=5)
 
+# --- Manutenção automática (Celery beat) ----------------------------------
+# Achados sem movimentação há N dias são encerrados como EXPIRADO.
+ITEM_EXPIRATION_DAYS = env.int("ITEM_EXPIRATION_DAYS", default=90)
+# Alertas de perda abertos há N dias são encerrados como EXPIRADO.
+LOST_REPORT_EXPIRATION_DAYS = env.int("LOST_REPORT_EXPIRATION_DAYS", default=90)
+# Após expirar, o PNG do QR de retirada é mantido por N dias (auditoria) e
+# então o arquivo é removido.
+WITHDRAWAL_QR_RETENTION_DAYS = env.int("WITHDRAWAL_QR_RETENTION_DAYS", default=7)
+
 # ===========================================================================
 # 13. Arquivos estáticos e mídia
 # ===========================================================================

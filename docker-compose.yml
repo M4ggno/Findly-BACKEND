@@ -65,7 +65,8 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: findly_migrate
-    command: python manage.py migrate --noinput
+    # Aplica migrações e registra as tarefas periódicas do beat (idempotente).
+    command: sh -c "python manage.py migrate --noinput && python manage.py setup_periodic_tasks"
     env_file:
       - .env
     environment:

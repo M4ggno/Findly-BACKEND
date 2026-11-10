@@ -888,6 +888,61 @@ reivindicante na liberação da retirada e ambos na entrega final.
 2. Coleção Postman de itens, operações e auditoria.
 3. Revisar envio de notificações via Celery quando o broker estiver disponível.
 
+## 🗓️ 2026-11-09 — Manutenção automática (tarefas agendadas)
+
+### 🎯 Objetivo
+Fechar o ciclo de vida dos itens sem intervenção manual: encerrar achados e
+alertas de perda antigos e limpar os PNGs de QR de retirada já vencidos,
+preservando a trilha de auditoria.
+
+### 📁 Estrutura criada
+| Arquivo | Conteúdo |
+| :--- | :--- |
+| `src/apps/items/tasks.py` | `expire_found_items` e `expire_lost_reports` |
+| `src/apps/operations/tasks.py` | `cleanup_expired_withdrawal_qrs` |
+| `src/apps/items/management/commands/setup_periodic_tasks.py` | Registro idempotente no `django_celery_beat` |
+| `src/apps/items/tests/test_tasks.py` | 8 testes (expiração e agendamento) |
+| `src/apps/operations/tests/test_tasks.py` | 5 testes (limpeza de QR) |
+
+### 🔁 Regras implementadas
+- **Expiração de achado:** usa `updated_at`; qualquer transferência, mudança de
+  status ou decisão renova o prazo (`ITEM_EXPIRATION_DAYS`, padrão 90 dias).
+- A transição para `EXPIRADO` grava `STATUS_CHANGED` com responsável nulo e
+  recusa os claims pendentes na **mesma transação** (`CLAIM_REJECTED`, também
+  sem responsável), via `reject_claim(user=None)`.
+- **Expiração de alerta:** `LostReport` aberto com `lost_at` além de
+  `LOST_REPORT_EXPIRATION_DAYS` vira `EXPIRADO`.
+- **Limpeza de QR:** apaga só o PNG expirado há mais de
+  `WITHDRAWAL_QR_RETENTION_DAYS` e limpa `qr_image`; o `WithdrawalAuthority`
+  permanece para histórico/auditoria.
+- Estados terminais (`DEVOLVIDO`, `EXPIRADO`, `ENCAMINHADO`) e alertas já
+  cancelados/expirados não são tocados.
+- `setup_periodic_tasks` é idempotente e roda no serviço `migrate` do Docker
+  Compose, logo após `migrate`.
+- Agendamentos (fuso `America/Sao_Paulo`): itens às 03:00, alertas às 03:15 e
+  limpeza de QR às 03:30.
+
+### ✅ Validações
+| Verificação | Resultado |
+| :--- | :--- |
+| `pytest src/apps/items/tests/test_tasks.py src/apps/operations/tests/test_tasks.py` | **13 passed** ✅ |
+| `pytest` (suíte completa) | **251 passed** ✅ |
+| `manage.py check` | sem issues ✅ |
+| `makemigrations --check --dry-run` | sem drift ✅ |
+| `spectacular --validate` | 0 erros / 0 warnings ✅ |
+| `ruff` + `black` (arquivos alterados) | limpos ✅ |
+
+### 📌 Decisões desta etapa
+- Expiração é ação do sistema: auditoria com `responsible=None`.
+- QR expirado não apaga o registro de autorização — só o arquivo, mantendo a
+  rastreabilidade da emissão.
+- Tarefas toleram execução concorrente com `select_for_update` por item.
+- `reject_claim` passou a aceitar `user=None` (recusa automática).
+
+### ⏭️ Próximos passos
+1. Coleção Postman de itens, operações e auditoria.
+2. Revisar envio de notificações via Celery quando o broker estiver disponível.
+
 <!-- ===================================================================== -->
 <!-- NOVAS ENTRADAS DEVEM SER ADICIONADAS ACIMA DESTA LINHA               -->
 <!-- ===================================================================== -->

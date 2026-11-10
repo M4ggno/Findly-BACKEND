@@ -322,8 +322,11 @@ def approve_claim(claim: Claim, *, user: User, decision_note: str = "") -> Claim
 
 
 @transaction.atomic
-def reject_claim(claim: Claim, *, user: User, decision_note: str = "") -> Claim:
-    """Recusa uma reivindicação pendente."""
+def reject_claim(claim: Claim, *, user: User | None, decision_note: str = "") -> Claim:
+    """Recusa uma reivindicação pendente.
+
+    ``user`` pode ser ``None`` quando a recusa é automática (expiração do item).
+    """
     claim = Claim.objects.select_for_update().select_related("item").get(pk=claim.pk)
     if claim.status != ClaimStatus.PENDING:
         raise InvalidClaim("Apenas reivindicações pendentes podem ser recusadas.")

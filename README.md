@@ -454,3 +454,42 @@ quando a **retirada é liberada** e quando a **entrega é concluída**.
 - Falhas de SMTP/push são logadas e **não** interrompem a regra de negócio.
 - Em desenvolvimento, `EMAIL_BACKEND` de console imprime a mensagem no terminal.
 
+---
+
+## 🧹 12. Manutenção automática (Celery beat)
+
+Tarefas periódicas registradas em `django_celery_beat` pelo comando
+`python manage.py setup_periodic_tasks` (idempotente; roda no serviço `migrate`
+do Docker Compose).
+
+| Tarefa | Horário | O que faz |
+| :--- | :--- | :--- |
+| `apps.items.tasks.expire_found_items` | 03:00 | Itens sem movimentação há `ITEM_EXPIRATION_DAYS` viram `EXPIRADO`; claims pendentes são recusadas com auditoria |
+| `apps.items.tasks.expire_lost_reports` | 03:15 | Alertas abertos há `LOST_REPORT_EXPIRATION_DAYS` viram `EXPIRADO` |
+| `apps.operations.tasks.cleanup_expired_withdrawal_qrs` | 03:30 | Remove o PNG de QRs expirados há mais de `WITHDRAWAL_QR_RETENTION_DAYS` |
+
+### 12.1. Regras
+
+- A expiração do achado usa `updated_at`: qualquer transferência, mudança de
+  status ou decisão renova o prazo.
+- A transição para `EXPIRADO` grava `STATUS_CHANGED` com responsável nulo
+  (ação automática) e recusa os claims pendentes na mesma transação.
+- O registro de `WithdrawalAuthority` **não** é apagado na limpeza do QR: só o
+  arquivo é removido e o campo `qr_image` é limpo, preservando o histórico.
+- Itens em estado terminal (`DEVOLVIDO`, `EXPIRADO`, `ENCAMINHADO`) e alertas
+  já cancelados/expirados não são tocados.
+
+### 12.2. Execução manual
+
+```bash
+python manage.py setup_periodic_tasks
+python manage.py shell -c "from apps.items.tasks import expire_found_items; print(expire_found_items())"
+python manage.py shell -c "from apps.operations.tasks import cleanup_expired_withdrawal_qrs; print(cleanup_expired_withdrawal_qrs())"
+```
+
+| Variável | Padrão | Descrição |
+| :--- | :--- | :--- |
+| `ITEM_EXPIRATION_DAYS` | `90` | Inatividade máxima do achado |
+| `LOST_REPORT_EXPIRATION_DAYS` | `90` | Idade máxima do alerta de perda |
+| `WITHDRAWAL_QR_RETENTION_DAYS` | `7` | Retenção do PNG após a expiração |
+

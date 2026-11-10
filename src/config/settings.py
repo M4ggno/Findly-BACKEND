@@ -91,8 +91,8 @@ LOCAL_APPS = [
     "apps.users",
     "apps.authentication",
     "apps.items",
+    "apps.operations",
     "apps.audit",
-    # "apps.operations",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + INFRA_APPS + LOCAL_APPS

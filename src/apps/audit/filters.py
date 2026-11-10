@@ -16,9 +16,10 @@ class AuditEventFilter(filters.FilterSet):
         label="Código público do item",
     )
     action = filters.ChoiceFilter(choices=AuditAction.choices)
+    collection_point = filters.NumberFilter(field_name="collection_point_id")
     date_from = filters.IsoDateTimeFilter(field_name="created_at", lookup_expr="gte")
     date_to = filters.IsoDateTimeFilter(field_name="created_at", lookup_expr="lte")
 
     class Meta:
         model = AuditEvent
-        fields = ["item", "action", "date_from", "date_to"]
+        fields = ["item", "action", "collection_point", "date_from", "date_to"]

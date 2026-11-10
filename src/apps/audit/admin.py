@@ -16,6 +16,7 @@ class AuditEventAdmin(admin.ModelAdmin):
         "previous_status",
         "new_status",
         "responsible",
+        "collection_point",
         "created_at",
     )
     list_filter = ("action",)
@@ -23,6 +24,7 @@ class AuditEventAdmin(admin.ModelAdmin):
         "item__public_code",
         "item__title",
         "responsible__full_name",
+        "collection_point__name",
     )
     readonly_fields = (
         "item",
@@ -30,10 +32,11 @@ class AuditEventAdmin(admin.ModelAdmin):
         "previous_status",
         "new_status",
         "responsible",
+        "collection_point",
         "metadata",
         "created_at",
     )
-    list_select_related = ("item", "responsible")
+    list_select_related = ("item", "responsible", "collection_point")
     date_hierarchy = "created_at"
 
     def has_add_permission(self, request):

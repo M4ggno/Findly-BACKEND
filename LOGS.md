@@ -770,6 +770,76 @@ status passa a gravar um evento no mesmo bloco transacional da operação.
 2. Serviços de QR (24 h, uso único) e notificações.
 3. Coleção Postman de itens/auditoria.
 
+## 🗓️ 2026-11-09 — App `operations`: pontos, custódia, claims e retirada via QR
+
+### 🎯 Objetivo
+Fechar o ciclo operacional do item: receber em um ponto de coleta, registrar
+quem detém a posse física, avaliar reivindicações e liberar a retirada com QR
+Code temporário e de uso único — tudo auditado na mesma transação.
+
+### 📁 Estrutura criada
+| Arquivo | Conteúdo |
+| :--- | :--- |
+| `src/apps/operations/models.py` | `CollectionPoint`, `CustodyRecord`, `Claim`, `WithdrawalAuthority` |
+| `src/apps/operations/services.py` | Custódia, claims e retirada (transacionais) |
+| `src/apps/operations/permissions.py` | Custódia e claims por autor/operador/admin |
+| `src/apps/operations/serializers.py` | Pontos, custódia, claims e QR |
+| `src/apps/operations/filters.py` | Pontos e claims (status, item, período, `mine`) |
+| `src/apps/operations/views.py` + `urls.py` | Rotas em `/api/operations/` |
+| `src/apps/operations/admin.py` | Admin somente leitura para custódia/claims/QR |
+| `src/services/qrcode_service.py` | Etiqueta e QR de retirada (PNG) |
+| `src/apps/operations/migrations/0001_initial.py` | Migração inicial |
+| `src/apps/audit/migrations/0002_*.py` | FK `collection_point` + `CLAIM_CANCELLED` |
+| `src/apps/operations/tests/` | 78 testes |
+
+### 🔌 Endpoints
+- **Pontos:** `GET/POST /api/operations/points/`, `GET/PATCH .../{id}/` (escrita
+  apenas admin; sem DELETE).
+- **Custódia:** `GET .../items/found/{code}/custody/`,
+  `POST .../custody/transfer/`, `GET .../label/` (etiqueta QR PNG).
+- **Claims:** `GET/POST .../items/found/{code}/claims/`,
+  `GET /api/operations/claims/`, `.../{id}/`, e ações `approve`, `reject`,
+  `cancel`.
+- **Retirada:** `POST /api/operations/withdrawals/confirm/`.
+
+### 🔁 Regras de negócio
+- Cadastro do achado abre custódia inicial com quem registrou (sem evento extra;
+  o `CREATED` já cobre a criação).
+- Transferência para ponto fecha o registro anterior, valida capacidade e
+  vínculo operador→ponto, muda `REPORTADO → EM_CUSTODIA` e grava
+  `CUSTODY_TRANSFERRED`.
+- Quem cadastrou o achado não pode reivindicá-lo; não há claim pendente duplicado
+  por usuário/item; item terminal não aceita claim.
+- Aprovação exige item em `EM_CUSTODIA`/`AGUARDANDO_RETIRADA`, move para
+  `AGUARDANDO_RETIRADA`, emite QR de 24 h e recusa os demais pendentes.
+- Retirada valida token (aceita payload do QR), expiração e uso único; move para
+  `DEVOLVIDO`, fecha a custódia e grava `WITHDRAWAL_CONFIRMED`.
+- `AuditEvent` ganhou FK opcional `collection_point` e a ação `CLAIM_CANCELLED`.
+
+### ✅ Validações
+| Verificação | Resultado |
+| :--- | :--- |
+| `pytest src/apps/operations` | **78 passed** ✅ |
+| `pytest` (suíte completa) | **223 passed** ✅ |
+| `manage.py check` | sem issues ✅ |
+| `makemigrations --check --dry-run` | sem drift ✅ |
+| `spectacular --validate` | 0 erros / 0 warnings ✅ |
+| `ruff` + `black` (arquivos novos) | limpos ✅ |
+
+### 📌 Decisões desta etapa
+- Claims só podem ser aprovados com o item sob custódia de ponto (retirada
+  presencial).
+- Operador só transfere para ponto do qual é responsável (quando o ponto tem
+  operadores cadastrados).
+- QR de retirada é persistido em `media/qrcodes/withdrawals/<token>.png`; a
+  etiqueta do item é gerada sob demanda.
+- Cancelamento de claim gera evento próprio (`CLAIM_CANCELLED`).
+
+### ⏭️ Próximos passos
+1. Serviço de notificações (match, custódia e retirada).
+2. Tarefas agendadas: expiração de itens e limpeza de QR vencido.
+3. Coleção Postman de itens, operações e auditoria.
+
 <!-- ===================================================================== -->
 <!-- NOVAS ENTRADAS DEVEM SER ADICIONADAS ACIMA DESTA LINHA               -->
 <!-- ===================================================================== -->

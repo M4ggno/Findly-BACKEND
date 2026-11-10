@@ -21,6 +21,7 @@ class AuditAction(models.TextChoices):
     CUSTODY_TRANSFERRED = "CUSTODY_TRANSFERRED", "Custódia transferida"
     CLAIM_APPROVED = "CLAIM_APPROVED", "Reivindicação aprovada"
     CLAIM_REJECTED = "CLAIM_REJECTED", "Reivindicação recusada"
+    CLAIM_CANCELLED = "CLAIM_CANCELLED", "Reivindicação cancelada"
     WITHDRAWAL_CONFIRMED = "WITHDRAWAL_CONFIRMED", "Retirada confirmada"
 
 
@@ -61,6 +62,15 @@ class AuditEvent(models.Model):
         verbose_name="usuário responsável",
         null=True,
         blank=True,
+    )
+    collection_point = models.ForeignKey(
+        "operations.CollectionPoint",
+        on_delete=models.PROTECT,
+        related_name="audit_events",
+        verbose_name="ponto de coleta",
+        null=True,
+        blank=True,
+        help_text="Preenchido quando o evento envolve um ponto de coleta.",
     )
     metadata = models.JSONField(
         "metadados",

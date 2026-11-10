@@ -1,4 +1,5 @@
 """Ponto de entrada WSGI do Findly Backend (usado por gunicorn/uWSGI em prod)."""
+
 from __future__ import annotations
 
 import os

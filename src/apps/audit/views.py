@@ -59,13 +59,20 @@ class AuditEventViewSet(
 ):
     """Consulta administrativa da trilha (somente leitura)."""
 
-    queryset = AuditEvent.objects.select_related("item", "responsible")
+    queryset = AuditEvent.objects.select_related(
+        "item", "responsible", "collection_point"
+    )
     serializer_class = AuditEventSerializer
     permission_classes = [IsAdminRole]
     http_method_names = ["get", "head", "options"]
 
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_class = AuditEventFilter
-    search_fields = ["item__public_code", "item__title", "responsible__full_name"]
+    search_fields = [
+        "item__public_code",
+        "item__title",
+        "responsible__full_name",
+        "collection_point__name",
+    ]
     ordering_fields = ["created_at", "action"]
     ordering = ["-created_at", "-id"]

@@ -1,4 +1,5 @@
 """Ponto de entrada ASGI do Findly Backend (usado por daphne/uvicorn)."""
+
 from __future__ import annotations
 
 import os

@@ -319,9 +319,10 @@ do evento falhar, a operação inteira é revertida (README, seção 3.5).
 | Campo | Descrição |
 | :--- | :--- |
 | `item` | Item auditado (`PROTECT`; o histórico nunca perde a referência) |
-| `action` | `CREATED`, `STATUS_CHANGED`, `CUSTODY_TRANSFERRED`, `CLAIM_APPROVED`, `CLAIM_REJECTED`, `WITHDRAWAL_CONFIRMED` |
+| `action` | `CREATED`, `STATUS_CHANGED`, `CUSTODY_TRANSFERRED`, `CLAIM_APPROVED`, `CLAIM_REJECTED`, `CLAIM_CANCELLED`, `WITHDRAWAL_CONFIRMED` |
 | `previous_status` / `new_status` | Transição registrada (vazio na criação) |
 | `responsible` | Quem executou (`null` em ações automáticas, como expiração) |
+| `collection_point` | Ponto de coleta envolvido no evento (quando aplicável) |
 | `metadata` | Contexto adicional (ponto de coleta, claim, QR etc.) |
 | `created_at` | Timestamp do evento |
 
@@ -337,13 +338,75 @@ do evento falhar, a operação inteira é revertida (README, seção 3.5).
 | `GET` | `/api/audit/` | admin | Trilha global, paginada |
 | `GET` | `/api/audit/{id}/` | admin | Detalhe de um evento |
 
-**Filtros de `/api/audit/`:** `item` (código público), `action`, `date_from`,
-`date_to`, `search` (código/título do item e nome do responsável) e `ordering`
-(`created_at`, `action`).
+**Filtros de `/api/audit/`:** `item` (código público), `action`,
+`collection_point`, `date_from`, `date_to`, `search` (código/título do item,
+nome do responsável/ponto) e `ordering` (`created_at`, `action`).
 
 ### 9.3. Eventos automáticos
 
 Criação: `CREATED` (`REPORTADO`). Transições: `STATUS_CHANGED` com
-`previous_status` e `new_status` preenchidos. As demais ações ficam reservadas
-para o app `operations` (custódia, claims e retirada via QR).
+`previous_status` e `new_status` preenchidos. Custódia, claims e retirada são
+registrados pelo app `operations` (`CUSTODY_TRANSFERRED`, `CLAIM_APPROVED`,
+`CLAIM_REJECTED`, `CLAIM_CANCELLED`, `WITHDRAWAL_CONFIRMED`).
+
+---
+
+## 🏢 10. Operações (pontos de coleta, custódia, claims e retirada)
+
+### 10.1. Pontos de coleta — `/api/operations/points/`
+
+| Método | Rota | Quem pode | Descrição |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/operations/points/` | autenticado | Lista com busca e filtros |
+| `POST` | `/api/operations/points/` | admin | Cria um ponto |
+| `GET` | `/api/operations/points/{id}/` | autenticado | Detalhe |
+| `PUT/PATCH` | `/api/operations/points/{id}/` | admin | Edita (use `is_active=false` para desativar) |
+
+Campos: `name`, `address`, `opening_hours`, `capacity` (vazio = ilimitado),
+`operators` (ids de operadores/admins), `is_active`. A leitura inclui
+`operators_display`, `occupancy` e `has_capacity`.
+**Filtros:** `is_active`, `operator`, `has_capacity`, `search`, `ordering`.
+
+### 10.2. Custódia — `/api/operations/items/found/{code}/`
+
+| Método | Rota | Quem pode | Descrição |
+| :--- | :--- | :--- | :--- |
+| `GET` | `.../custody/` | autor, operador, admin | Histórico de custódia |
+| `POST` | `.../custody/transfer/` | operador, admin | Transfere para um ponto |
+| `GET` | `.../label/` | autor, operador, admin | Etiqueta QR (PNG) do item |
+
+- O cadastro do achado abre a custódia inicial com quem o registrou.
+- A transferência fecha o registro aberto e abre um novo no ponto de coleta.
+- Operador só transfere para ponto do qual é responsável; a capacidade é
+  validada; `REPORTADO → EM_CUSTODIA` ocorre na mesma transação.
+- Toda transferência grava `CUSTODY_TRANSFERRED` com o ponto e o responsável.
+
+### 10.3. Claims — `/api/operations/`
+
+| Método | Rota | Quem pode | Descrição |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/operations/items/found/{code}/claims/` | autenticado | Próprios claims (operador/admin veem todos) |
+| `POST` | `/api/operations/items/found/{code}/claims/` | autenticado | Abre uma reivindicação |
+| `GET` | `/api/operations/claims/` | autenticado | Lista (ver acima) |
+| `GET` | `/api/operations/claims/{id}/` | autor, operador, admin | Detalhe |
+| `POST` | `/api/operations/claims/{id}/approve/` | operador, admin | Aprova e emite o QR |
+| `POST` | `/api/operations/claims/{id}/reject/` | operador, admin | Recusa |
+| `POST` | `/api/operations/claims/{id}/cancel/` | autor, admin | Cancela (só pendente) |
+
+Regras: quem cadastrou o achado não pode reivindicá-lo; não há claim duplicado
+pendente por usuário/item; item terminal não aceita claim; a aprovação exige o
+item em `EM_CUSTODIA` ou `AGUARDANDO_RETIRADA`; aprovar um claim recusa os demais
+pendentes do mesmo item.
+
+### 10.4. Retirada via QR — `/api/operations/withdrawals/confirm/`
+
+```json
+{ "token": "FINDLY:WITHDRAWAL:<token>" }
+```
+
+- O QR é emitido na aprovação do claim, vale **24 h** e é de **uso único**.
+- A confirmação exige operador/admin, move o item para `DEVOLVIDO`, fecha a
+  custódia ativa e grava `WITHDRAWAL_CONFIRMED` na mesma transação.
+- Token inválido, expirado, já utilizado ou de claim não aprovado retorna `400`.
+- `metadata` do evento guarda `claim`, `claimant` e `withdrawal`.
 

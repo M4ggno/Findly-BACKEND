@@ -43,11 +43,13 @@ urlpatterns = [
     path("api/", include("apps.users.urls")),
     # --- Itens (achados, perdidos e fotos) ----------------------------------
     path("api/items/", include("apps.items.urls")),
+    # --- Operações (pontos, custódia, claims e retirada) --------------------
+    path("api/operations/", include("apps.operations.urls")),
     # --- Auditoria (histórico + consulta administrativa) --------------------
     path("api/", include("apps.audit.urls")),
     #
     # --- Apps de domínio ----------------------------------------------------
-    # TODO(apps): incluir as rotas de operations.
+    # TODO(apps): demais rotas de domínio.
 ]
 
 # Servir arquivos de mídia em desenvolvimento.

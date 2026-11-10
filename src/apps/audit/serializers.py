@@ -5,6 +5,7 @@ from __future__ import annotations
 from rest_framework import serializers
 
 from apps.items.models import FoundItem
+from apps.operations.models import CollectionPoint
 from apps.users.models import User
 
 from .models import AuditEvent
@@ -28,11 +29,21 @@ class AuditUserSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
+class AuditCollectionPointSerializer(serializers.ModelSerializer):
+    """Referência mínima ao ponto de coleta do evento."""
+
+    class Meta:
+        model = CollectionPoint
+        fields = ("id", "name", "address")
+        read_only_fields = fields
+
+
 class AuditEventSerializer(serializers.ModelSerializer):
     """Representação de um evento da trilha."""
 
     item = AuditItemSerializer(read_only=True)
     responsible = AuditUserSerializer(read_only=True)
+    collection_point = AuditCollectionPointSerializer(read_only=True)
     action_display = serializers.CharField(source="get_action_display", read_only=True)
 
     class Meta:
@@ -45,6 +56,7 @@ class AuditEventSerializer(serializers.ModelSerializer):
             "previous_status",
             "new_status",
             "responsible",
+            "collection_point",
             "metadata",
             "created_at",
         )

@@ -21,6 +21,7 @@ def record_event(
     user: User | None = None,
     previous_status: str = "",
     new_status: str = "",
+    collection_point=None,
     metadata: dict[str, Any] | None = None,
 ) -> AuditEvent:
     """Cria um evento imutável de auditoria."""
@@ -30,6 +31,7 @@ def record_event(
         responsible=user,
         previous_status=previous_status,
         new_status=new_status,
+        collection_point=collection_point,
         metadata=metadata or {},
     )
 

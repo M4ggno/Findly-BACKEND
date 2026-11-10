@@ -128,6 +128,7 @@ class FoundItemViewSet(
 
         from apps.audit.models import AuditAction
         from apps.audit.services import record_event
+        from apps.operations.services import open_initial_custody
 
         record_event(
             item=item,
@@ -135,6 +136,9 @@ class FoundItemViewSet(
             user=self.request.user,
             new_status=item.status,
         )
+        # A posse física começa com quem cadastrou o achado; o evento CREATED já
+        # cobre a criação (não geramos um segundo evento de custódia).
+        open_initial_custody(item, self.request.user)
 
     @extend_schema(
         tags=["items"],

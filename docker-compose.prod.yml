@@ -1,0 +1,219 @@
+# =============================================================================
+# Findly Backend — Orquestração de PRODUÇÃO (Docker Compose)
+# =============================================================================
+# Serviços: nginx (entrada), web (gunicorn), worker/beat (Celery), db e redis.
+#
+# Uso:
+#   cp .env.production.example .env.production
+#   docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build
+#
+# Diferenças em relação ao docker-compose.yml (desenvolvimento):
+# - imagem construída sem ferramentas de dev (INSTALL_DEV=false);
+# - gunicorn no lugar do runserver;
+# - collectstatic no serviço `migrate` e nginx servindo /static/ e /media/;
+# - Postgres e Redis sem portas publicadas; Redis com senha;
+# - healthcheck da aplicação em /health/.
+# =============================================================================
+name: findly-prod
+
+x-app-environment: &app-environment
+  POSTGRES_HOST: db
+  POSTGRES_PORT: "5432"
+  REDIS_URL: redis://:${REDIS_PASSWORD:?defina REDIS_PASSWORD em .env.production}@redis:6379/0
+  CELERY_BROKER_URL: redis://:${REDIS_PASSWORD:?defina REDIS_PASSWORD em .env.production}@redis:6379/1
+  CELERY_RESULT_BACKEND: redis://:${REDIS_PASSWORD:?defina REDIS_PASSWORD em .env.production}@redis:6379/2
+
+x-app-build: &app-build
+  context: .
+  dockerfile: Dockerfile
+  args:
+    INSTALL_DEV: "false"
+
+services:
+  # ---------------------------------------------------------------------------
+  # Banco de dados relacional
+  # ---------------------------------------------------------------------------
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-findly}
+      POSTGRES_USER: ${POSTGRES_USER:-findly}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD em .env.production}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-findly} -d ${POSTGRES_DB:-findly}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    networks:
+      - findly_network
+
+  # ---------------------------------------------------------------------------
+  # Redis: cache, broker e result backend do Celery (protegido por senha)
+  # ---------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    command:
+      [
+        "redis-server",
+        "--appendonly",
+        "yes",
+        "--requirepass",
+        "${REDIS_PASSWORD:?defina REDIS_PASSWORD em .env.production}",
+      ]
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", 'redis-cli -a "$$REDIS_PASSWORD" ping | grep PONG']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    networks:
+      - findly_network
+
+  # ---------------------------------------------------------------------------
+  # Migrações + collectstatic (one-shot). web/worker/beat dependem dele.
+  # ---------------------------------------------------------------------------
+  migrate:
+    build: *app-build
+    env_file:
+      - .env.production
+    environment:
+      <<: *app-environment
+      RUN_MIGRATIONS: "0"
+      COLLECT_STATIC: "1"
+    command: sh -c "python manage.py migrate --noinput && python manage.py setup_periodic_tasks"
+    volumes:
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+      - logs_volume:/app/logs
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: "no"
+    networks:
+      - findly_network
+
+  # ---------------------------------------------------------------------------
+  # Aplicação Django (gunicorn). Apenas o nginx publica portas.
+  # ---------------------------------------------------------------------------
+  web:
+    build: *app-build
+    env_file:
+      - .env.production
+    environment:
+      <<: *app-environment
+      RUN_MIGRATIONS: "0"
+      COLLECT_STATIC: "0"
+    command: >
+      sh -c "gunicorn config.wsgi:application
+      --bind 0.0.0.0:8000
+      --workers ${GUNICORN_WORKERS:-3}
+      --timeout ${GUNICORN_TIMEOUT:-60}
+      --access-logfile -
+      --error-logfile -"
+    volumes:
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+      - logs_volume:/app/logs
+    expose:
+      - "8000"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/health/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    networks:
+      - findly_network
+
+  # ---------------------------------------------------------------------------
+  # Celery worker (envio de notificações e tarefas assíncronas)
+  # ---------------------------------------------------------------------------
+  worker:
+    build: *app-build
+    env_file:
+      - .env.production
+    environment:
+      <<: *app-environment
+      RUN_MIGRATIONS: "0"
+      COLLECT_STATIC: "0"
+    command: >
+      celery -A config worker -l info
+      --concurrency=${CELERY_CONCURRENCY:-2}
+    volumes:
+      - media_volume:/app/media
+      - logs_volume:/app/logs
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    networks:
+      - findly_network
+
+  # ---------------------------------------------------------------------------
+  # Celery beat (agendador das tarefas periódicas)
+  # ---------------------------------------------------------------------------
+  beat:
+    build: *app-build
+    env_file:
+      - .env.production
+    environment:
+      <<: *app-environment
+      RUN_MIGRATIONS: "0"
+      COLLECT_STATIC: "0"
+    command: >
+      celery -A config beat -l info
+      --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    volumes:
+      - logs_volume:/app/logs
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    networks:
+      - findly_network
+
+  # ---------------------------------------------------------------------------
+  # Nginx: entrada HTTP, arquivos estáticos/mídia e proxy para o gunicorn
+  # ---------------------------------------------------------------------------
+  nginx:
+    image: nginx:1.27-alpine
+    ports:
+      - "${HTTP_PORT:-80}:80"
+    volumes:
+      - ./docker/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - static_volume:/app/staticfiles:ro
+      - media_volume:/app/media:ro
+    depends_on:
+      web:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - findly_network
+
+volumes:
+  postgres_data:
+  redis_data:
+  static_volume:
+  media_volume:
+  logs_volume:
+
+networks:
+  findly_network:
+    driver: bridge

@@ -204,6 +204,58 @@ curl -fsS http://localhost:8000/health/
 curl -fsS http://localhost:8000/health/ready/
 ```
 
+### Produção (`docker-compose.prod.yml`)
+
+O compose de produção troca o servidor de desenvolvimento por **gunicorn**,
+constrói a imagem sem ferramentas de dev, publica apenas o **nginx** e protege o
+Redis com senha.
+
+| Serviço | Papel |
+| :--- | :--- |
+| `nginx` | Entrada HTTP, serve `/static/` e `/media/` e faz proxy para o gunicorn |
+| `web` | Django via gunicorn (`GUNICORN_WORKERS`, `GUNICORN_TIMEOUT`) |
+| `migrate` | One-shot: `migrate` + `setup_periodic_tasks` + `collectstatic` |
+| `worker` / `beat` | Celery (notificações assíncronas e tarefas periódicas) |
+| `db` / `redis` | PostgreSQL 16 e Redis 7, **sem portas publicadas** |
+
+1. **Crie o arquivo de ambiente e preencha os segredos:**
+   ```bash
+   cp .env.production.example .env.production
+   # edite DJANGO_SECRET_KEY, POSTGRES_PASSWORD, REDIS_PASSWORD, hosts, SMTP, VAPID...
+   ```
+
+2. **Suba a stack** (o `--env-file` é obrigatório: o compose usa essas variáveis
+   na interpolação):
+   ```bash
+   docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build
+   ```
+
+3. **Acompanhe a subida e os logs:**
+   ```bash
+   docker compose --env-file .env.production -f docker-compose.prod.yml ps
+   docker compose --env-file .env.production -f docker-compose.prod.yml logs -f web
+   ```
+
+4. **Crie o superusuário do admin secreto:**
+   ```bash
+   docker compose --env-file .env.production -f docker-compose.prod.yml \
+     exec web python manage.py createsuperuser
+   ```
+
+**Checklist de produção**
+
+- `DJANGO_DEBUG=False` (ativa `SECURE_SSL_REDIRECT`, HSTS e cookies seguros).
+- Termine o **TLS** no nginx ou em um proxy à frente e envie
+  `X-Forwarded-Proto: https`; sem isso o redirect para HTTPS entra em loop.
+- Ajuste `DJANGO_ALLOWED_HOSTS`, `CORS_ALLOWED_ORIGINS` e `CSRF_TRUSTED_ORIGINS`
+  para os domínios reais.
+- `MAX_UPLOAD_SIZE_MB` é 5; o nginx aceita até 12 MB por requisição.
+- O `/media/` é servido pelo nginx; não habilite listagem de diretório.
+- O healthcheck do serviço `web` usa `GET /health/`; o `nginx` só sobe quando o
+  `web` está saudável.
+- Backups: `postgres_data` (banco), `media_volume` (fotos/QR) e
+  `static_volume` (regenerável via `collectstatic`).
+
 ---
 
 ## 📐 6. Padrões de Código e Convenções da Equipe

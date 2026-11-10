@@ -26,6 +26,7 @@ db.sqlite3-journal
 .env
 .env.*
 !.env.example
+!.env.production.example
 
 # --- Mídia, estáticos e logs ------------------------------------------------
 /media/

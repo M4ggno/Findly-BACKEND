@@ -1053,6 +1053,42 @@ nascer verde.
 1. Compose de produção (gunicorn, collectstatic, nginx, `DEBUG=False`).
 2. Seed de demonstração e exemplos de resposta na collection Postman.
 
+## 🗓️ 2026-11-10 — Compose de produção
+
+### 🎯 Objetivo
+Transformar o ambiente Docker em algo publicável: gunicorn no lugar do
+`runserver`, arquivos estáticos coletados, nginx na entrada e segredos/portas
+fechados.
+
+### 🧩 Arquivos criados/alterados
+| Arquivo | Conteúdo |
+| :--- | :--- |
+| `docker-compose.prod.yml` | `nginx`, `web` (gunicorn), `migrate`, `worker`, `beat`, `db`, `redis` |
+| `docker/nginx.conf` | Proxy para `web:8000`, `/static/`, `/media/` e `/health/` |
+| `.env.production.example` | Modelo de ambiente de produção (segredos em branco) |
+| `.gitignore` / `.dockerignore` | Liberam `!.env.production.example` |
+
+### ⚙️ Decisões
+- A imagem de produção usa `INSTALL_DEV=false` (sem pytest/ruff/black).
+- O serviço `migrate` roda `migrate`, `setup_periodic_tasks` e `collectstatic`
+  antes de `web`/`worker`/`beat`; o `web` só inicia com ele concluído.
+- PostgreSQL e Redis **não** publicam portas; o Redis exige `REDIS_PASSWORD`.
+- Apenas o nginx publica `${HTTP_PORT:-80}`; o healthcheck do `web` usa
+  `GET /health/` e o nginx espera o `web` ficar saudável.
+- `X-Forwarded-Proto` é preservado de um proxy TLS à frente (map no nginx),
+  evitando loop de `SECURE_SSL_REDIRECT`.
+- `client_max_body_size 12m` no nginx (upload limitado a 5 MB na aplicação).
+- `/media/` é servido pelo nginx com `autoindex off`.
+
+### ✅ Validações
+| Verificação | Resultado |
+| :--- | :--- |
+| `docker compose --env-file .env.production -f docker-compose.prod.yml config --quiet` | válido |
+| Imagem build com `INSTALL_DEV=false` | previsto no compose (Docker daemon não estava ativo) |
+
+### ➡️ Próximos passos
+1. Seed de demonstração e exemplos de resposta na collection Postman.
+
 <!-- ===================================================================== -->
 <!-- NOVAS ENTRADAS DEVEM SER ADICIONADAS ACIMA DESTA LINHA               -->
 <!-- ===================================================================== -->

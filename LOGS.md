@@ -641,6 +641,78 @@ gerenciados automaticamente pelas requisições.
 > A execução foi feita contra um Django local (SQLite + cache em memória), com
 > e-mail no console — o mesmo comportamento do `docker compose` em dev.
 
+## 🗓️ 2026-11-09 — App `items`: achados, perdidos, máquina de estados e fotos
+
+### 🎯 Objetivo
+Implementar o primeiro app de domínio do núcleo do Findly: cadastro de objetos
+encontrados e alertas de perdidos, com ciclo de vida controlado, permissões por
+papel, filtros e upload seguro de fotos.
+
+### 📁 Estrutura criada
+| Arquivo | Conteúdo |
+| :--- | :--- |
+| `src/apps/items/models.py` | `FoundItem`, `LostReport`, `ItemPhoto` + enums de categoria/status |
+| `src/apps/items/services.py` | Máquina de estados transacional (`transition_found_item`) |
+| `src/apps/items/permissions.py` | Autor/operador/admin, fotos e alertas |
+| `src/apps/items/serializers.py` | Leitura/escrita separadas, status e upload |
+| `src/apps/items/views.py` + `urls.py` | 12 rotas em `/api/items/` |
+| `src/apps/items/filters.py` | Status, categoria, período, `mine` e busca |
+| `src/apps/items/admin.py` | Registro no admin secreto + inline de fotos |
+| `src/services/photo_service.py` | Validação, orientação, resize, JPEG e remoção de EXIF |
+| `src/apps/items/migrations/0001_initial.py` | Migração inicial |
+| `src/apps/items/tests/` | 51 testes |
+
+### 🔌 Endpoints
+- **Achados:** `GET/POST /api/items/found/`, `GET/PATCH /api/items/found/{code}/`,
+  `POST .../status/`, `POST .../photos/`, `DELETE .../photos/{id}/`.
+- **Perdidos:** `GET/POST /api/items/lost/`, `GET/PATCH /api/items/lost/{code}/`,
+  `POST .../cancel/`.
+- Código público de 10 caracteres em vez de ID sequencial; filtros de status,
+  categoria, período, `mine` e busca textual; paginação global (20/página).
+
+### 🔁 Máquina de estados
+`REPORTADO → EM_CUSTODIA → AGUARDANDO_RETIRADA → DEVOLVIDO`, com saída para
+`EXPIRADO`/`ENCAMINHADO`. Estados finais são terminais; saltos inválidos e status
+repetido retornam `400`. Toda transição passa por serviço atômico — a view nunca
+grava `status` diretamente.
+
+### 🔐 Permissões e privacidade
+- Autor edita o achado apenas em `REPORTADO`; depois, só operador/admin.
+- Status e custódia: somente operador/admin.
+- Alertas de perda: dono enquanto `ABERTO`; admin sempre.
+- `reported_by`/`owner` expõem somente `id` e `full_name` (sem e-mail/telefone).
+- Sem `DELETE` de itens: o ciclo termina em estado final (histórico preservado).
+
+### 🖼️ Serviço de fotos
+- Extensões `jpg/jpeg/png/webp`, máximo 5 MB.
+- `ImageOps.exif_transpose` antes de descartar metadados.
+- Maior lado limitado a 1600 px, recompressão JPEG (q=85).
+- Transparência achatada em fundo branco; nomes aleatórios em
+  `media/items/<public_code>/`.
+- Remoção da foto apaga o arquivo e o registro.
+
+### ✅ Validações
+| Verificação | Resultado |
+| :--- | :--- |
+| `pytest src/apps/items` | **51 passed** ✅ |
+| `pytest` (suíte completa) | **120 passed** ✅ |
+| `manage.py check` | sem issues ✅ |
+| `makemigrations --check --dry-run` | sem drift ✅ |
+| `spectacular --validate` | 0 erros / 0 warnings (após `ENUM_NAME_OVERRIDES`) ✅ |
+| `ruff` + `black` (arquivos novos) | limpos ✅ |
+
+### 📌 Decisões desta etapa
+- Fotos em disco local (`MEDIA_ROOT`/volume Docker) — troca para S3 fica isolada
+  no serviço de fotos.
+- Listagem exige autenticação; contato do autor não é exposto.
+- Categorias fixas em código (`TextChoices`) para evitar tabela de apoio nesta fase.
+- QR de retirada (24 h, uso único) será implementado no app `operations`.
+
+### ⏭️ Próximos passos
+1. App `audit`: trilha imutável e integração em `transition_found_item`.
+2. App `operations`: custódia, pontos de coleta, claims e retirada via QR.
+3. Serviços restantes (QR, notificações) e coleção Postman de itens.
+
 <!-- ===================================================================== -->
 <!-- NOVAS ENTRADAS DEVEM SER ADICIONADAS ACIMA DESTA LINHA               -->
 <!-- ===================================================================== -->

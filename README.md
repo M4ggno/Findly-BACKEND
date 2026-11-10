@@ -231,3 +231,78 @@ postman collection run "postman/collections/Findly API" \
 ```
 
 > As credenciais do environment são **exclusivas para desenvolvimento local**.
+
+---
+
+## 🧾 8. API de Itens (achados, perdidos e fotos)
+
+Todas as rotas exigem `Authorization: Bearer <access>` e usam o `public_code`
+(10 caracteres, sem letras ambíguas) em vez do ID sequencial.
+
+### 8.1. Achados — `/api/items/found/`
+
+| Método | Rota | Quem pode | Descrição |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/items/found/` | autenticado | Lista com paginação e filtros |
+| `POST` | `/api/items/found/` | autenticado | Cadastra um achado (`REPORTADO`) |
+| `GET` | `/api/items/found/{code}/` | autenticado | Detalhe + fotos |
+| `PUT/PATCH` | `/api/items/found/{code}/` | autor (só `REPORTADO`), operador, admin | Edita os dados |
+| `POST` | `/api/items/found/{code}/status/` | operador, admin | Aplica uma transição válida |
+| `POST` | `/api/items/found/{code}/photos/` | autor, operador, admin | Upload de foto (multipart) |
+| `DELETE` | `/api/items/found/{code}/photos/{id}/` | autor, operador, admin | Remove a foto |
+
+**Corpo do cadastro/edição**
+
+```json
+{
+  "title": "Carteira preta",
+  "description": "Carteira de couro com documentos.",
+  "category": "carteiras",
+  "found_at": "2026-11-09T18:30:00Z",
+  "found_location": "Recepção do prédio A"
+}
+```
+
+Categorias: `eletronicos`, `documentos`, `vestuario`, `chaves`, `carteiras`,
+`moveis`, `outros`.
+
+**Filtros de listagem:** `status`, `category`, `found_after`, `found_before`,
+`mine=true`, `search` (título, descrição, local e código) e `ordering`
+(`created_at`, `found_at`, `title`, `status`).
+
+### 8.2. Máquina de estados
+
+```text
+REPORTADO ──► EM_CUSTODIA ──► AGUARDANDO_RETIRADA ──► DEVOLVIDO
+     │              │                    │
+     └──────────────┴────────────────────┴──► EXPIRADO / ENCAMINHADO
+```
+
+- Estados finais não aceitam novas transições (`400`).
+- Saltos inválidos (ex.: `REPORTADO → DEVOLVIDO`) retornam `400`.
+- O status **não** é editável via `PATCH`: use `POST .../status/`.
+- A transição roda em `transaction.atomic` (`apps/items/services.py`).
+
+### 8.3. Perdidos — `/api/items/lost/`
+
+| Método | Rota | Quem pode | Descrição |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/items/lost/` | autenticado | Lista com filtros (`status`, `category`, `mine`, datas, busca) |
+| `POST` | `/api/items/lost/` | autenticado | Abre um alerta (`ABERTO`) |
+| `GET` | `/api/items/lost/{code}/` | autenticado | Detalhe |
+| `PUT/PATCH` | `/api/items/lost/{code}/` | dono (enquanto `ABERTO`), admin | Edita |
+| `POST` | `/api/items/lost/{code}/cancel/` | dono, admin | Marca como `CANCELADO` |
+
+### 8.4. Fotos
+
+- Formatos: **JPEG, PNG e WebP**; máximo **5 MB**.
+- O backend corrige a orientação, limita o maior lado a **1600 px**, recomprime em
+  JPEG (qualidade 85) e **remove todo o EXIF** (geolocalização, câmera etc.).
+- As fotos ficam em `media/items/<public_code>/`.
+
+### 8.5. Privacidade
+
+O autor é exposto apenas como `{"id", "full_name"}` — e-mail e telefone nunca
+aparecem nas respostas de itens. A retirada será negociada pelo fluxo de
+*custódia/claim* do app `operations` (próxima etapa).
+

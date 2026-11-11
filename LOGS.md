@@ -1146,6 +1146,52 @@ de montar o fluxo manualmente.
 ### ➡️ Próximos passos
 1. Publicar os commits dos blocos 3 e 4.
 
+## 🗓️ 2026-11-11 — Envio real de e-mail pelo Gmail
+
+### 🎯 Objetivo
+Tirar o e-mail do backend de console e entregar de verdade pela conta
+`findly.unifip@gmail.com`, para que verificação de conta, reset de senha e as
+notificações de negócio cheguem ao destinatário.
+
+### ⚙️ Configuração
+- `.env` local (gitignored) passou a usar `smtp.EmailBackend` com
+  `smtp.gmail.com:587`, STARTTLS, `EMAIL_HOST_USER=findly.unifip@gmail.com` e
+  `DEFAULT_FROM_EMAIL=Findly <findly.unifip@gmail.com>`.
+- A senha é uma **App Password** de 16 caracteres (2FA ativo) e fica apenas no
+  `.env`; nenhuma credencial é versionada.
+- `EMAIL_TIMEOUT=10` adicionado em `settings.py`, `.env.example` e
+  `.env.production.example`: evita que um SMTP lento trave a requisição.
+- `.env.production.example` ganhou comentário sobre Gmail (porta 587 + App
+  Password, limite de ~500 destinatários/dia).
+
+### 🔍 Diagnóstico da credencial
+- Conexão e TLS em 587/465: OK.
+- `AUTH` com senha dummy: `535 BadCredentials` (servidor processa auth normal).
+- Primeira App Password informada: recusada com `535 5.7.8`.
+- Segunda App Password: aceita; `sendtestemail` retornou sucesso (exit 0).
+
+### 🧹 Ajuste de formatação
+- `manage.py` estava fora do padrão do Black (linha em branco após o docstring
+  do módulo); corrigido para o `black --check` ficar limpo.
+
+### ✅ Validações
+| Verificação | Resultado |
+| :--- | :--- |
+| `manage.py sendtestemail findly.unifip@gmail.com` | entregue (exit 0) |
+| `ruff check .` | All checks passed |
+| `black --check .` | 127 arquivos sem alteração |
+| `pytest src/apps/authentication src/apps/notifications` | 53 passed |
+
+### 🧠 Decisões desta etapa
+- Gmail atende demo/teste; para volume de produção, trocar por provedor
+  transacional (SES, Resend, SendGrid) mantendo o mesmo contrato SMTP.
+- Falhas de SMTP continuam isoladas: cadastro/reset logam o erro e a API
+  responde normalmente; as notificações de negócio também não quebram.
+
+### ➡️ Próximos passos
+1. Recriar os containers (`docker compose up -d --force-recreate web worker`)
+   para o `env_file` ler a configuração nova quando o Docker estiver em uso.
+
 <!-- ===================================================================== -->
 <!-- NOVAS ENTRADAS DEVEM SER ADICIONADAS ACIMA DESTA LINHA               -->
 <!-- ===================================================================== -->

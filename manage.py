@@ -5,6 +5,7 @@ O código-fonte do projeto fica dentro de ``src/`` (padrão ``src layout``). Est
 script garante que ``src/`` esteja no ``sys.path`` para que os módulos
 ``config``, ``apps`` e ``services`` sejam importáveis.
 """
+
 from __future__ import annotations
 
 import os

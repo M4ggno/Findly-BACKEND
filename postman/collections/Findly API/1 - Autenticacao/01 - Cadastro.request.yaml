@@ -30,13 +30,18 @@ scripts:
         });
         pm.environment.set('login_email', data.user.email);
         console.log('Verificação enviada para ' + data.user.email);
-        console.log('Copie uid e token do e-mail: docker compose logs -f web');
+        console.log('Abra o e-mail e copie uid e token do link para as variáveis do environment.');
       } else {
         console.log('Se o e-mail já existir, pule para o Login ou use outro demo_email.');
       }
 description: |-
-  Cria a conta com `is_active=false` e envia o e-mail de confirmação (em dev, o
-  conteúdo aparece no console do Django).
+  Cria a conta com `is_active=false` e envia o e-mail de confirmação pelo SMTP
+  configurado no backend. No ambiente de demonstração o remetente é
+  `Findly <findly.unifip@gmail.com>`.
 
-  - `201`: conta criada. Copie `uid` e `token` do e-mail para a requisição **Verificar e-mail**.
+  - `201`: conta criada. Copie `uid` e `token` do link no e-mail para a
+    requisição **Verificar e-mail**.
   - `400`: e-mail já cadastrado, senha fraca ou senhas diferentes.
+
+  Se o backend estiver com `EMAIL_BACKEND` de console (sem SMTP), o conteúdo do
+  e-mail aparece em `docker compose logs -f web`.

@@ -23,13 +23,12 @@ scripts:
         console.log('Conta ativada. Agora execute o Login.');
       }
 description: |-
-  Ativa a conta usando `uid` e `token` recebidos por e-mail.
+  Ativa a conta usando `uid` e `token` recebidos por e-mail. O backend envia a
+  mensagem pelo SMTP configurado (remetente padrão `Findly <findly.unifip@gmail.com>`).
 
-  No ambiente local o e-mail é impresso no console do Django:
+  Abra o link do e-mail e copie os valores para `verification_uid` e
+  `verification_token` no environment (ou cole direto no body). O token é de
+  **uso único** e expira em 24 h.
 
-  ```
-  docker compose logs -f web
-  ```
-
-  Copie os valores para `verification_uid` e `verification_token` no environment
-  (ou cole direto no body). O token é de **uso único** e expira em 24 h.
+  Se o backend estiver com `EMAIL_BACKEND` de console (sem SMTP), o e-mail
+  aparece em `docker compose logs -f web`.

@@ -25,15 +25,15 @@ description: |-
   ## Roteiro de apresentação (≈10 min)
 
   1. **Cadastro** — mostra a conta criada inativa (`201`).
-  2. Abra o e-mail no console do Django: `docker compose logs -f web` (backend de e-mail = console em dev).
-  3. **Verificar e-mail** — cole `uid` e `token` nas variáveis `verification_uid` / `verification_token`.
+  2. **Abra o e-mail cadastrado** — a mensagem de verificação é entregue pelo SMTP configurado (remetente padrão `Findly <findly.unifip@gmail.com>`). Sem SMTP, o conteúdo aparece em `docker compose logs -f web`.
+  3. **Verificar e-mail** — cole `uid` e `token` do link nas variáveis `verification_uid` / `verification_token`.
   4. **Login** — access/refresh são salvos no environment; mostre o payload do usuário.
   5. **Meu perfil** — prova que o Bearer token autentica.
   6. **Atualizar perfil** — `PATCH` em `full_name`/`phone`.
   7. **Renovar token** — mostre a rotação; rodar de novo com o refresh antigo dá `401`.
   8. **Listar usuários** — troque `login_email`/`login_password` para uma conta **admin**, faça login de novo e rode as rotas de administração.
   9. **Logout** — encerra a sessão e limpa os tokens do environment.
-  10. **Recuperação de senha** — solicitar, pegar `uid`/`token` no console e confirmar; todas as sessões antigas são revogadas.
+  10. **Recuperação de senha** — solicitar, pegar `uid`/`token` no e-mail recebido e confirmar; todas as sessões antigas são revogadas.
 
   ## Módulos desta collection
 
@@ -45,6 +45,7 @@ description: |-
   | `4 - Operacoes` | Pontos de coleta, custódia, claims e retirada por QR |
   | `5 - Auditoria` | Histórico do item e trilha global (admin) |
   | `6 - Manutencao` | Verificação das tarefas automáticas e das notificações |
+  | `7 - Notificacoes` | Inscrições de Web Push (listar, registrar e remover) |
 
   ## Fluxo completo de demonstração
 
@@ -60,6 +61,7 @@ description: |-
 
   - Erros seguem o padrão DRF: `{"campo": ["mensagem"]}` ou `{"detail": "..."}`.
   - Rotas de autenticação têm throttling (`login` 20/min, `cadastro` 5/h, `reset` 5/h). Em caso de `429`, aguarde a janela.
+  - O envio de e-mail usa as variáveis `EMAIL_*` do backend. No ambiente de demonstração o remetente é `Findly <findly.unifip@gmail.com>`; com `EMAIL_BACKEND` de console os links aparecem em `docker compose logs -f web`.
   - As credenciais do environment são **somente para desenvolvimento local**.
 variables:
   - key: base_url

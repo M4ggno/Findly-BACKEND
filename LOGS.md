@@ -1174,10 +1174,23 @@ notificações de negócio cheguem ao destinatário.
 - `manage.py` estava fora do padrão do Black (linha em branco após o docstring
   do módulo); corrigido para o `black --check` ficar limpo.
 
+### 📬 Collection e environment
+- Removida a instrução de copiar `uid`/`token` do console: agora apontam para o
+  link no e-mail entregue pelo SMTP (com fallback documentado para o console).
+- Cadastro, verificação, solicitar reset e a visão geral da collection
+  atualizados com o remetente `Findly <findly.unifip@gmail.com>`.
+- Adicionada a pasta `7 - Notificacoes` à tabela de módulos da collection (estava
+  ausente na documentação).
+- Descrições das variáveis `verification_*`, `reset_*` e `demo_email` no
+  environment ajustadas para o fluxo real de e-mail.
+
 ### ✅ Validações
 | Verificação | Resultado |
 | :--- | :--- |
 | `manage.py sendtestemail findly.unifip@gmail.com` | entregue (exit 0) |
+| `manage.py sendtestemail magnofilho@ads.fiponline.edu.br` | entregue (exit 0) |
+| `postman collection lint` | 49 requisições, 0 erros, 0 warnings |
+| `postman environment lint` | 0 erros, 0 warnings |
 | `ruff check .` | All checks passed |
 | `black --check .` | 127 arquivos sem alteração |
 | `pytest src/apps/authentication src/apps/notifications` | 53 passed |

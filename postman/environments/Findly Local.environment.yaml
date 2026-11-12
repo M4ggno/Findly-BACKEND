@@ -14,7 +14,7 @@ values:
     value: 'apresentacao@findly.local'
     enabled: true
     type: default
-    description: E-mail da conta criada no cadastro. Use outro se já existir.
+    description: E-mail da conta criada no cadastro. Use um endereço que você possa acessar (a verificação chega por SMTP).
   - key: demo_password
     value: 'S3nh@Forte!2026'
     enabled: true
@@ -49,22 +49,22 @@ values:
     value: ''
     enabled: true
     type: default
-    description: Copie o uid do e-mail de verificação (console do Django).
+    description: Copie o uid do link no e-mail de verificação (ou do console do Django, se o backend estiver sem SMTP).
   - key: verification_token
     value: ''
     enabled: true
     type: secret
-    description: Copie o token do e-mail de verificação (expira em 24 h).
+    description: Copie o token do link no e-mail de verificação (expira em 24 h).
   - key: reset_uid
     value: ''
     enabled: true
     type: default
-    description: Copie o uid do e-mail de redefinição de senha.
+    description: Copie o uid do link no e-mail de redefinição de senha.
   - key: reset_token
     value: ''
     enabled: true
     type: secret
-    description: Copie o token do e-mail de redefinição (expira em 1 h).
+    description: Copie o token do link no e-mail de redefinição (expira em 1 h).
   - key: new_password
     value: 'N0vaS3nh@Forte!2026'
     enabled: true
